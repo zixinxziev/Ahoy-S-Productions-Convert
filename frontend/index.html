@@ -4,12 +4,56 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090909"><title>AHOY'S AUDIO CONVERTER</title>
 <link rel="stylesheet" href="./assets/style.css">
+<style>
+/* AHOY'S hero tablet — decorative visual simulation only */
+.hero{position:relative;isolation:isolate;}
+.ahoy-tablet{
+  position:absolute;left:clamp(18px,5vw,76px);top:50%;transform:translateY(-50%) perspective(900px) rotateY(9deg) rotateX(2deg);
+  width:clamp(205px,21vw,278px);padding:13px;border:1px solid rgba(170,198,216,.38);border-radius:15px;
+  background:linear-gradient(145deg,rgba(30,39,47,.94),rgba(9,12,16,.97) 55%,rgba(31,25,15,.96));
+  box-shadow:0 22px 55px #0009,0 0 28px rgba(116,160,190,.13),inset 0 1px rgba(255,255,255,.1);
+  text-align:left;z-index:1;backdrop-filter:blur(16px);animation:ahoyTabletFloat 5s ease-in-out infinite;
+}
+.tablet-top,.tablet-track,.tablet-progress-head,.tablet-speed-row,.tablet-status,.tablet-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tablet-top{padding:0 1px 10px;border-bottom:1px solid #ffffff13;font-size:8px;letter-spacing:1.2px}
+.tablet-brand{color:#dce8ef;font-weight:700}.tablet-brand i,.tablet-live b{display:inline-block;width:6px;height:6px;border-radius:50%;background:#8fc6e6;box-shadow:0 0 9px #8fc6e6;margin-right:5px}
+.tablet-live{color:#9bc9a9;font-size:7px}.tablet-live b{background:#64d99a;box-shadow:0 0 8px #64d99a;width:5px;height:5px}
+.tablet-track{justify-content:flex-start;padding:12px 0 10px}.tablet-cover{width:32px;height:32px;display:grid;place-items:center;border-radius:7px;background:linear-gradient(135deg,#b18b4b,#d9e3e8 55%,#526f85);color:#111;font-size:19px}
+.tablet-track-info{display:grid;gap:3px;min-width:0}.tablet-track-info strong{font-size:9px;color:#f0f2f3}.tablet-track-info small{font-size:7px;color:#8f9ba4}
+.tablet-wave{margin-left:auto;height:20px;display:flex;align-items:center;gap:2px}.tablet-wave i{width:2px;border-radius:4px;background:#a8c8da;animation:ahoyWave .75s ease-in-out infinite alternate}.tablet-wave i:nth-child(1),.tablet-wave i:nth-child(7){height:6px}.tablet-wave i:nth-child(2),.tablet-wave i:nth-child(6){height:12px;animation-delay:.2s}.tablet-wave i:nth-child(3),.tablet-wave i:nth-child(5){height:17px;animation-delay:.35s}.tablet-wave i:nth-child(4){height:10px;animation-delay:.1s}
+.tablet-progress-head{font-size:7px;letter-spacing:1px;color:#9ba8b0}.tablet-percent{color:#e2d1a3;font-size:9px}.tablet-progress{height:4px;margin:6px 0 10px;border-radius:8px;background:#ffffff16;overflow:hidden}.tablet-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7da8c2,#e3cf99);box-shadow:0 0 9px #9dc4dc;animation:ahoyProgress 8s ease-in-out infinite}
+.tablet-speed-row{padding:7px 0 9px;border-bottom:1px solid #ffffff12;color:#929fa7;font-size:7px;letter-spacing:.8px}.tablet-speed-row strong{font-size:17px;color:#e8d5a5}.tablet-speed-row strong span{font-size:9px;color:#9fc5dd}
+.tablet-status{justify-content:flex-start;margin-top:8px;padding:8px;border:1px solid rgba(115,190,151,.18);border-radius:7px;background:rgba(68,135,102,.07)}.tablet-status-icon{width:17px;height:17px;display:grid;place-items:center;border-radius:50%;background:#214b38;color:#9de2b6;font-size:10px}.tablet-status>span:nth-child(2){display:grid;gap:2px}.tablet-status small{font-size:6px;letter-spacing:1px;color:#89979d}.tablet-status strong{font-size:8px;color:#b8e7c8;letter-spacing:.5px}.tablet-status em{margin-left:auto;color:#8dd6a8;font-style:normal;font-size:6px;letter-spacing:.8px}.tablet-upload{border-color:rgba(137,177,210,.2);background:rgba(83,124,157,.08)}.tablet-upload .tablet-status-icon{background:#263e51;color:#b4d8ef}.tablet-upload strong,.tablet-upload em{color:#b4d8ef}
+.tablet-foot{margin-top:10px;padding-top:8px;border-top:1px solid #ffffff12;color:#697780;font-size:6px;letter-spacing:1px}.tablet-foot-dots{color:#bca16a;letter-spacing:3px}
+@keyframes ahoyTabletFloat{0%,100%{translate:0 0}50%{translate:0 -7px}}
+@keyframes ahoyWave{to{transform:scaleY(.45);opacity:.55}}
+@keyframes ahoyProgress{0%{width:4%}15%{width:22%}48%{width:61%}72%{width:83%}90%,100%{width:100%}}
+@keyframes ahoyTabletIn{from{opacity:0;filter:blur(5px)}to{opacity:1;filter:blur(0)}}
+.ahoy-tablet{animation:ahoyTabletFloat 5s ease-in-out infinite,ahoyTabletIn .9s .3s both}
+@media(max-width:1050px){.ahoy-tablet{left:18px;width:205px;opacity:.92}.hero{padding-left:245px;padding-right:20px}.hero p{max-width:520px}}
+@media(max-width:800px){.hero{padding:55px 18px 80px}.ahoy-tablet{position:relative;left:auto;top:auto;transform:none;width:min(278px,82vw);margin:0 auto 32px;opacity:1;animation:ahoyTabletFloat 5s ease-in-out infinite,ahoyTabletIn .9s .3s both}}
+@media(max-width:480px){.ahoy-tablet{width:min(260px,86vw);padding:12px;margin-bottom:28px}.hero h1{font-size:clamp(42px,12vw,58px)}}
+@media(prefers-reduced-motion:reduce){.ahoy-tablet,.tablet-wave i,.tablet-progress i{animation:none!important}.tablet-progress i{width:100%}}
+
+</style>
 </head>
 <body>
 <div id="intro" class="intro"><div class="intro-mark">AHOY'S <span>PRODUCTIONS</span></div><div class="intro-line"></div><p>AUDIO CONVERTER</p><button id="skipIntro">SKIP INTRO</button></div>
 <header><a class="brand" href="#">AHOY'S <small>PRODUCTIONS</small></a><nav><a href="#converter" data-i18n="navConverter">Converter</a><a href="#membership" data-i18n="navMembership">Membership</a><button id="langBtn">EN</button><button id="accountBtn" class="outline">Login / Register</button></nav></header>
 <main>
-<section class="hero"><div class="eyebrow">PREMIUM AUDIO PROCESSING</div><h1>AHOY'S <em>AUDIO</em><br>CONVERTER</h1><p data-i18n="heroText">Convert audio dengan kontrol penuh, kualitas terjaga, dan workflow yang simpel.</p><a class="gold-btn" href="#converter" data-i18n="start">START CONVERTING</a></section>
+<section class="hero">
+  <div class="ahoy-tablet" aria-label="Animated audio conversion status demo">
+    <div class="tablet-top"><span class="tablet-brand"><i></i> AHOY'S ENGINE</span><span class="tablet-live"><b></b> LIVE</span></div>
+    <div class="tablet-track"><div class="tablet-cover"><span>♪</span></div><div class="tablet-track-info"><strong>Audio Processing</strong><small>premium conversion pipeline</small></div><span class="tablet-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+    <div class="tablet-progress-head"><span>CONVERTING AUDIO</span><strong class="tablet-percent">0%</strong></div>
+    <div class="tablet-progress"><i></i></div>
+    <div class="tablet-speed-row"><span>PROCESSING SPEED</span><strong>2.3<span>x</span></strong></div>
+    <div class="tablet-status"><span class="tablet-status-icon">✓</span><span><small>MODERATION</small><strong>ACCEPTED</strong></span><em>VERIFIED</em></div>
+    <div class="tablet-status tablet-upload"><span class="tablet-status-icon">↑</span><span><small>UPLOAD STATUS</small><strong>PUSHED SUCCESSFULLY</strong></span><em>DONE</em></div>
+    <div class="tablet-foot"><span>AHOY AUDIO PIPELINE</span><span class="tablet-foot-dots">● ● ●</span></div>
+  </div>
+  <div class="eyebrow">PREMIUM AUDIO PROCESSING</div><h1>AHOY'S <em>AUDIO</em><br>CONVERTER</h1><p data-i18n="heroText">Convert audio dengan kontrol penuh, kualitas terjaga, dan workflow yang simpel.</p><a class="gold-btn" href="#converter" data-i18n="start">START CONVERTING</a>
+</section>
 <section id="converter" class="panel">
 <div class="section-head"><div><div class="eyebrow">01 / AUDIO ENGINE</div><h2 data-i18n="converterTitle">Audio Converter</h2></div><span class="pill">BULK READY</span></div>
 <div id="dropzone" class="dropzone"><input id="files" type="file" accept="audio/*" multiple hidden><div class="upload-icon">＋</div><b data-i18n="dropTitle">Drop audio files here</b><p data-i18n="dropSub">atau klik untuk memilih beberapa file sekaligus</p><button id="browse" class="outline">Browse Files</button><div id="fileList" class="file-list"></div></div>
