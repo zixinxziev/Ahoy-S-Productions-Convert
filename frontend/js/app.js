@@ -192,6 +192,10 @@ $("convert").onclick = async () => {
       row.querySelector("p").textContent = "Completed";
       row.querySelector("progress").value = 100;
 
+      if (localStorage.getItem("ahoyToken")) {
+        await loadMyUsage();
+      }
+
       row.insertAdjacentHTML(
         "beforeend",
         `<p><a href="${API + data.downloadUrl}" download>Download ${escapeHtml(data.filename)}</a></p>`
@@ -246,66 +250,148 @@ $("downloadZip").onclick = async () => {
 };
 
 // ===============================
+// MEMBER USAGE DISPLAY
+let usageRefreshTimer = null;
+let usageCountdownTimer = null;
+
+function stopUsageTimers() {
+  if (usageRefreshTimer) clearInterval(usageRefreshTimer);
+  if (usageCountdownTimer) clearInterval(usageCountdownTimer);
+  usageRefreshTimer = null;
+  usageCountdownTimer = null;
+}
+
+function formatCountdown(resetAt) {
+  const secondsLeft = Math.max(0, Math.floor((new Date(resetAt).getTime() - Date.now()) / 1000));
+  const h = String(Math.floor(secondsLeft / 3600)).padStart(2, "0");
+  const m = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, "0");
+  const s = String(secondsLeft % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+async function loadMyUsage() {
+  const panel = $("memberUsage");
+  const token = localStorage.getItem("ahoyToken");
+  if (!panel || !token) return;
+
+  panel.innerHTML = '<div class="ahoy-usage-loading">Loading your usage...</div>';
+
+  try {
+    const response = await fetch(API + "/api/member/my-usage", {
+      headers: { Authorization: "Bearer " + token },
+      cache: "no-store"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Unable to load usage");
+
+    if (data.unlimited) {
+      if (usageCountdownTimer) clearInterval(usageCountdownTimer);
+      usageCountdownTimer = null;
+      panel.innerHTML = `
+        <div class="ahoy-usage-head"><span>MY USAGE</span><span class="ahoy-usage-badge unlimited">UNLIMITED</span></div>
+        <div class="ahoy-unlimited-value">∞</div>
+        <p class="ahoy-usage-subtitle">You have unlimited conversions.</p>
+      `;
+      return;
+    }
+
+    const limit = Math.max(1, Number(data.daily_limit) || 10);
+    const used = Math.max(0, Number(data.used) || 0);
+    const remaining = Math.max(0, Number(data.remaining) || 0);
+    const percentage = Math.min(100, used / limit * 100);
+    const resetAt = data.reset_at;
+
+    panel.innerHTML = `
+      <div class="ahoy-usage-head"><span>MY DAILY USAGE</span><span class="ahoy-usage-badge free">FREE MEMBER</span></div>
+      <div class="ahoy-usage-number"><strong>${remaining}</strong><span>/ ${limit} remaining</span></div>
+      <div class="ahoy-usage-track"><div class="ahoy-usage-fill" style="width:${percentage}%"></div></div>
+      <div class="ahoy-usage-stats"><span>Used: ${used}</span><span>Remaining: ${remaining}</span></div>
+      <div class="ahoy-usage-reset"><span>Daily reset in</span><strong id="ahoyUsageCountdown">${resetAt ? formatCountdown(resetAt) : "--:--:--"}</strong></div>
+      <p class="ahoy-usage-note">Quota resets daily at 00:00 UTC.</p>
+    `;
+
+    if (usageCountdownTimer) clearInterval(usageCountdownTimer);
+    if (resetAt) {
+      usageCountdownTimer = setInterval(() => {
+        const el = $("ahoyUsageCountdown");
+        if (!el) {
+          clearInterval(usageCountdownTimer);
+          usageCountdownTimer = null;
+          return;
+        }
+        el.textContent = formatCountdown(resetAt);
+        if (Date.now() >= new Date(resetAt).getTime()) {
+          clearInterval(usageCountdownTimer);
+          usageCountdownTimer = null;
+          loadMyUsage();
+        }
+      }, 1000);
+    }
+  } catch (error) {
+    panel.innerHTML = `
+      <div class="ahoy-usage-head"><span>MY USAGE</span></div>
+      <p class="ahoy-usage-error">${escapeHtml(error.message)}</p>
+      <button type="button" id="ahoyRetryUsage" class="outline">Retry</button>
+    `;
+    $("ahoyRetryUsage")?.addEventListener("click", loadMyUsage);
+  }
+}
+
 // ACCOUNT PROFILE
 // ===============================
 
 function renderAccount() {
   const username = localStorage.getItem("ahoyUsername");
   const membership = localStorage.getItem("ahoyMembership");
-
   const accountBtn = $("accountBtn");
-
   let panel = $("accountStatus");
 
-  if (!username) {
+  if (!username || !localStorage.getItem("ahoyToken")) {
+    stopUsageTimers();
     if (panel) panel.remove();
-
     accountBtn.style.display = "";
     return;
   }
 
   accountBtn.style.display = "none";
-
   if (!panel) {
     panel = document.createElement("div");
     panel.id = "accountStatus";
     accountBtn.insertAdjacentElement("afterend", panel);
   }
 
-  const safeUsername = escapeHtml(username);
-  const safeMembership = escapeHtml(
-    (membership || "free").toUpperCase()
-  );
-
   panel.innerHTML = `
     <div class="ahoy-account">
       <div class="ahoy-account-info">
         <span class="ahoy-online-dot"></span>
-
         <div class="ahoy-account-details">
-          <strong>${safeUsername}</strong>
-          <small>ONLINE · ${safeMembership}</small>
+          <strong>${escapeHtml(username)}</strong>
+          <small>ONLINE · ${escapeHtml((membership || "free").toUpperCase())}</small>
         </div>
       </div>
-
-      <button type="button" id="ahoyLogout">
-        Logout
-      </button>
+      <button type="button" id="ahoyLogout">Logout</button>
     </div>
+    <section id="memberUsage" class="ahoy-usage">
+      <div class="ahoy-usage-loading">Loading your usage...</div>
+    </section>
   `;
 
   $("ahoyLogout").onclick = () => {
     if (!confirm("Are you sure you want to logout?")) return;
-
     localStorage.removeItem("ahoyToken");
     localStorage.removeItem("ahoyUsername");
     localStorage.removeItem("ahoyMembership");
-
     renderAccount();
   };
+
+  loadMyUsage();
+  if (usageRefreshTimer) clearInterval(usageRefreshTimer);
+  usageRefreshTimer = setInterval(() => {
+    if (localStorage.getItem("ahoyToken")) loadMyUsage();
+    else stopUsageTimers();
+  }, 60000);
 }
 
-// ===============================
 // LOGIN / REGISTER MODAL
 // ===============================
 
