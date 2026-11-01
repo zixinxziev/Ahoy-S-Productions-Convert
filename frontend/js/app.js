@@ -193,7 +193,7 @@ $("convert").onclick = async () => {
       row.querySelector("progress").value = 100;
 
       if (localStorage.getItem("ahoyToken")) {
-        await loadMyUsage();
+        updateMyUsageAfterConversion();
       }
 
       row.insertAdjacentHTML(
@@ -251,14 +251,32 @@ $("downloadZip").onclick = async () => {
 
 // ===============================
 // MEMBER USAGE DISPLAY
-let usageRefreshTimer = null;
 let usageCountdownTimer = null;
+let currentUsage = null;
 
 function stopUsageTimers() {
-  if (usageRefreshTimer) clearInterval(usageRefreshTimer);
   if (usageCountdownTimer) clearInterval(usageCountdownTimer);
-  usageRefreshTimer = null;
   usageCountdownTimer = null;
+  currentUsage = null;
+}
+
+// Update the visible quota immediately after a successful conversion.
+// No page reload and no repeated API polling are needed.
+function updateMyUsageAfterConversion() {
+  if (!currentUsage || currentUsage.unlimited) return;
+  currentUsage.used = Math.min(currentUsage.limit, currentUsage.used + 1);
+  currentUsage.remaining = Math.max(0, currentUsage.limit - currentUsage.used);
+
+  const usedEl = $("ahoyUsageUsed");
+  const remainingEl = $("ahoyUsageRemaining");
+  const numberEl = $("ahoyUsageNumber");
+  const fillEl = $("ahoyUsageFill");
+  const subEl = $("ahoyUsageSubtext");
+  if (usedEl) usedEl.textContent = `Used: ${currentUsage.used}`;
+  if (remainingEl) remainingEl.textContent = `Remaining: ${currentUsage.remaining}`;
+  if (numberEl) numberEl.textContent = currentUsage.remaining;
+  if (fillEl) fillEl.style.width = `${Math.min(100, currentUsage.used / currentUsage.limit * 100)}%`;
+  if (subEl) subEl.textContent = `${currentUsage.remaining} of ${currentUsage.limit} daily conversions remaining`;
 }
 
 function formatCountdown(resetAt) {
@@ -285,12 +303,12 @@ async function loadMyUsage() {
     if (!response.ok) throw new Error(data.error || "Unable to load usage");
 
     if (data.unlimited) {
+      currentUsage = { unlimited: true };
       if (usageCountdownTimer) clearInterval(usageCountdownTimer);
       usageCountdownTimer = null;
       panel.innerHTML = `
-        <div class="ahoy-usage-head"><span>MY USAGE</span><span class="ahoy-usage-badge unlimited">UNLIMITED</span></div>
-        <div class="ahoy-unlimited-value">∞</div>
-        <p class="ahoy-usage-subtitle">You have unlimited conversions.</p>
+        <div class="ahoy-usage-head"><span>DAILY USAGE</span><span class="ahoy-usage-badge unlimited">UNLIMITED</span></div>
+        <p class="ahoy-usage-subtitle">Unlimited conversions enabled</p>
       `;
       return;
     }
@@ -298,16 +316,16 @@ async function loadMyUsage() {
     const limit = Math.max(1, Number(data.daily_limit) || 10);
     const used = Math.max(0, Number(data.used) || 0);
     const remaining = Math.max(0, Number(data.remaining) || 0);
+    currentUsage = { unlimited: false, limit, used, remaining };
     const percentage = Math.min(100, used / limit * 100);
     const resetAt = data.reset_at;
 
     panel.innerHTML = `
-      <div class="ahoy-usage-head"><span>MY DAILY USAGE</span><span class="ahoy-usage-badge free">FREE MEMBER</span></div>
-      <div class="ahoy-usage-number"><strong>${remaining}</strong><span>/ ${limit} remaining</span></div>
-      <div class="ahoy-usage-track"><div class="ahoy-usage-fill" style="width:${percentage}%"></div></div>
-      <div class="ahoy-usage-stats"><span>Used: ${used}</span><span>Remaining: ${remaining}</span></div>
-      <div class="ahoy-usage-reset"><span>Daily reset in</span><strong id="ahoyUsageCountdown">${resetAt ? formatCountdown(resetAt) : "--:--:--"}</strong></div>
-      <p class="ahoy-usage-note">Quota resets daily at 00:00 UTC.</p>
+      <div class="ahoy-usage-head"><span>DAILY USAGE</span><span class="ahoy-usage-badge free">FREE</span></div>
+      <div class="ahoy-usage-line"><strong id="ahoyUsageNumber">${remaining}</strong><span id="ahoyUsageSubtext">${remaining} of ${limit} remaining</span></div>
+      <div class="ahoy-usage-track"><div id="ahoyUsageFill" class="ahoy-usage-fill" style="width:${percentage}%"></div></div>
+      <div class="ahoy-usage-stats"><span id="ahoyUsageUsed">Used: ${used}</span><span id="ahoyUsageRemaining">Remaining: ${remaining}</span></div>
+      <div class="ahoy-usage-reset"><span>Resets in</span><strong id="ahoyUsageCountdown">${resetAt ? formatCountdown(resetAt) : "--:--:--"}</strong></div>
     `;
 
     if (usageCountdownTimer) clearInterval(usageCountdownTimer);
@@ -384,12 +402,8 @@ function renderAccount() {
     renderAccount();
   };
 
+  // Fetch once when the account panel is created; refresh only at daily reset.
   loadMyUsage();
-  if (usageRefreshTimer) clearInterval(usageRefreshTimer);
-  usageRefreshTimer = setInterval(() => {
-    if (localStorage.getItem("ahoyToken")) loadMyUsage();
-    else stopUsageTimers();
-  }, 60000);
 }
 
 // LOGIN / REGISTER MODAL
