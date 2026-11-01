@@ -35,6 +35,18 @@
 @media(max-width:480px){.ahoy-tablet{width:min(260px,86vw);padding:12px;margin-bottom:28px}.hero h1{font-size:clamp(42px,12vw,58px)}}
 @media(prefers-reduced-motion:reduce){.ahoy-tablet,.tablet-wave i,.tablet-progress i{animation:none!important}.tablet-progress i{width:100%}}
 
+/* Interactive 3D tilt: tablet reacts naturally to mouse position. */
+.ahoy-tablet{
+  --tablet-tilt-x:0deg;--tablet-tilt-y:0deg;--tablet-glow-x:50%;--tablet-glow-y:50%;
+  transform:translateY(-50%) perspective(900px) rotateX(var(--tablet-tilt-x)) rotateY(calc(9deg + var(--tablet-tilt-y)));
+  transform-style:preserve-3d;will-change:transform;
+  transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .25s ease,border-color .25s ease;
+  background-image:radial-gradient(circle at var(--tablet-glow-x) var(--tablet-glow-y),rgba(173,211,235,.17),transparent 38%),linear-gradient(145deg,rgba(30,39,47,.94),rgba(9,12,16,.97) 55%,rgba(31,25,15,.96));
+}
+.ahoy-tablet.is-pointer-active{border-color:rgba(190,220,240,.68);box-shadow:0 28px 65px #000b,0 0 34px rgba(116,175,210,.22),inset 0 1px rgba(255,255,255,.16)}
+@media(max-width:800px){.ahoy-tablet{transform:perspective(900px) rotateX(var(--tablet-tilt-x)) rotateY(var(--tablet-tilt-y))}}
+@media(prefers-reduced-motion:reduce){.ahoy-tablet{transition:none!important;will-change:auto}}
+
 </style>
 </head>
 <body>
@@ -79,4 +91,34 @@
 </main>
 <footer>© AHOY'S PRODUCTIONS · PREMIUM AUDIO TOOLS</footer>
 <div id="authModal" class="modal"><div class="modal-card"><button class="close" id="closeModal">×</button><h2>Account</h2><div class="tabs"><button id="loginTab">Login</button><button id="registerTab">Register</button></div><form id="authForm"><input id="username" placeholder="Username" required minlength="3"><input id="password" type="password" placeholder="Password" required minlength="8"><button class="gold-btn" type="submit">Continue</button></form><p id="authMessage"></p><small>Registration starts as Free. Contact the owner with your username for permanent Unlimited activation.</small></div></div>
-<script src="./js/app.js"></script></body></html>
+<script src="./js/app.js"></script>
+<script>
+/* AHOY'S tablet pointer interaction — visual only, no converter logic touched. */
+(() => {
+  const tablet = document.querySelector('.ahoy-tablet');
+  if (!tablet || !window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let bounds;
+  const reset = () => {
+    tablet.style.setProperty('--tablet-tilt-x', '0deg');
+    tablet.style.setProperty('--tablet-tilt-y', '0deg');
+    tablet.style.setProperty('--tablet-glow-x', '50%');
+    tablet.style.setProperty('--tablet-glow-y', '50%');
+    tablet.classList.remove('is-pointer-active');
+  };
+  tablet.addEventListener('pointerenter', () => { bounds = tablet.getBoundingClientRect(); tablet.classList.add('is-pointer-active'); });
+  tablet.addEventListener('pointermove', event => {
+    bounds = bounds || tablet.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+    const y = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
+    /* Cursor on left => tablet leans subtly to the right, and vice versa. */
+    const tiltY = (0.5 - x) * 13;
+    const tiltX = (y - 0.5) * -9;
+    tablet.style.setProperty('--tablet-tilt-y', `${tiltY.toFixed(2)}deg`);
+    tablet.style.setProperty('--tablet-tilt-x', `${tiltX.toFixed(2)}deg`);
+    tablet.style.setProperty('--tablet-glow-x', `${(x * 100).toFixed(1)}%`);
+    tablet.style.setProperty('--tablet-glow-y', `${(y * 100).toFixed(1)}%`);
+  });
+  tablet.addEventListener('pointerleave', () => { bounds = null; reset(); });
+})();
+</script>
+</body></html>
