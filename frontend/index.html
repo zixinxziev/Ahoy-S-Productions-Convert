@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909"><title>AHOY'S AUDIO CONVERTER</title>
+<link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+<div id="intro" class="intro"><div class="intro-mark">AHOY'S <span>PRODUCTIONS</span></div><div class="intro-line"></div><p>AUDIO CONVERTER</p><button id="skipIntro">SKIP INTRO</button></div>
+<header><a class="brand" href="#">AHOY'S <small>PRODUCTIONS</small></a><nav><a href="#converter" data-i18n="navConverter">Converter</a><a href="#membership" data-i18n="navMembership">Membership</a><button id="langBtn">EN</button><button id="accountBtn" class="outline">Login / Register</button></nav></header>
+<main>
+<section class="hero"><div class="eyebrow">PREMIUM AUDIO PROCESSING</div><h1>AHOY'S <em>AUDIO</em><br>CONVERTER</h1><p data-i18n="heroText">Convert audio dengan kontrol penuh, kualitas terjaga, dan workflow yang simpel.</p><a class="gold-btn" href="#converter" data-i18n="start">START CONVERTING</a></section>
+<section id="converter" class="panel">
+<div class="section-head"><div><div class="eyebrow">01 / AUDIO ENGINE</div><h2 data-i18n="converterTitle">Audio Converter</h2></div><span class="pill">BULK READY</span></div>
+<div id="dropzone" class="dropzone"><input id="files" type="file" accept="audio/*" multiple hidden><div class="upload-icon">＋</div><b data-i18n="dropTitle">Drop audio files here</b><p data-i18n="dropSub">atau klik untuk memilih beberapa file sekaligus</p><button id="browse" class="outline">Browse Files</button><div id="fileList" class="file-list"></div></div>
+<div class="settings">
+<label>Output Format<select id="format"><option>mp3</option><option>wav</option><option>flac</option><option>m4a</option><option>aac</option><option>ogg</option><option>opus</option></select></label>
+<label>MP3 Bitrate<select id="bitrate"><option>128</option><option>192</option><option>256</option><option selected>320</option></select></label>
+<label>Sample Rate<select id="sampleRate"><option>22050</option><option>44100</option><option selected>48000</option><option>96000</option></select></label>
+<label>Roblox Target PlaybackSpeed<input id="targetSpeed" type="number" min=".05" max="2" step=".01" value="0.47"></label>
+<label>Manual Speed<input id="manualSpeed" type="number" min=".5" max="2" step=".01" value="1"></label>
+<label>Amplify (dB)<input id="gain" type="number" min="-20" max="20" step=".5" value="0"></label>
+<label>Pitch (semitones)<input id="pitch" type="number" min="-12" max="12" step=".1" value="0"></label>
+<label>Trim Start (sec)<input id="trimStart" type="number" min="0" step=".1" value="0"></label>
+<label>Trim Duration (sec)<input id="trimDuration" type="number" min="0" step=".1" placeholder="0 = full audio"></label>
+<label>WAV Bit Depth<select id="wavBits"><option>16</option><option selected>24</option></select></label>
+</div>
+<div class="toggle-row"><label><input id="robloxMode" type="checkbox" checked> Roblox target mode (auto speed + pitch compensation)</label><label><input id="preservePitch" type="checkbox" checked> Preserve pitch</label></div>
+<p class="hint" id="speedHint">Target 0.47x → calculated processing speed 2.1277x. Actual playback may vary by Roblox encoding.</p>
+<div class="actions"><button id="convert" class="gold-btn">CONVERT ALL</button><button id="downloadZip" class="outline" disabled>DOWNLOAD ALL ZIP</button></div>
+<div id="jobs" class="jobs"></div>
+<div class="preview-grid"><div><h3>Original Preview</h3><audio id="originalPreview" controls></audio></div><div><h3>Converted Preview</h3><audio id="convertedPreview" controls></audio></div></div>
+</section>
+<section id="membership" class="membership"><div class="eyebrow">02 / MEMBERSHIP</div><h2>Choose your access</h2><div class="plans"><article><h3>FREE</h3><div class="price">10 <small>conversions / day</small></div><p>All converter features, including Bulk, within daily quota.</p></article><article class="featured"><h3>AHOY'S UNLIMITED</h3><div class="price">∞ <small>permanent access</small></div><p>Unlimited conversions and Bulk processing. Activated manually by admin.</p></article></div></section>
+</main>
+<footer>© AHOY'S PRODUCTIONS · PREMIUM AUDIO TOOLS</footer>
+<div id="authModal" class="modal"><div class="modal-card"><button class="close" id="closeModal">×</button><h2>Account</h2><div class="tabs"><button id="loginTab">Login</button><button id="registerTab">Register</button></div><form id="authForm"><input id="username" placeholder="Username" required minlength="3"><input id="password" type="password" placeholder="Password" required minlength="8"><button class="gold-btn" type="submit">Continue</button></form><p id="authMessage"></p><small>Registration starts as Free. Contact the owner with your username for permanent Unlimited activation.</small></div></div>
+<script src="./js/app.js"></script></body></html>
