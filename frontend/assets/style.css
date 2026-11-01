@@ -744,3 +744,21 @@ footer{
 @media(max-width:480px){
   #accountStatus{width:min(100%,205px);max-width:205px}
 }
+
+
+/* AHOY'S: compact top navigation bar only */
+header {
+  min-height: 60px;
+  padding: 7px 6vw;
+  gap: 12px;
+}
+header nav button,
+header .outline {
+  padding: 8px 13px;
+}
+@media (max-width: 768px) {
+  header {
+    min-height: 54px;
+    padding: 7px 4vw;
+  }
+}
