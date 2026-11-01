@@ -762,3 +762,26 @@ header .outline {
     padding: 7px 4vw;
   }
 }
+
+
+/* AHOY'S FIX: keep logged-in account panel out of the header layout.
+   The panel is inserted after #accountBtn inside nav; when logged in it
+   must float below the header instead of increasing the header height. */
+header {
+  position: sticky;
+  isolation: isolate;
+}
+header #accountStatus {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 6vw;
+  z-index: 20;
+  width: min(220px, calc(100vw - 32px));
+  max-width: 220px;
+  margin: 0;
+}
+@media (max-width: 768px) {
+  header #accountStatus {
+    right: 4vw;
+  }
+}
