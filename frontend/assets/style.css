@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
 
 :root{
@@ -783,5 +782,181 @@ header #accountStatus {
 @media (max-width: 768px) {
   header #accountStatus {
     right: 4vw;
+  }
+}
+
+/* =========================================================
+   AHOY'S INTERACTION MOTION — silver / blue / subtle gold
+   CSS-only enhancement: keeps existing HTML and JavaScript.
+   ========================================================= */
+
+/* Smooth hover/press feedback for clickable controls and links. */
+:where(
+  button,
+  a,
+  [role="button"],
+  [role="option"],
+  [role="tab"],
+  .format-option,
+  .quality-option,
+  .format-card,
+  .quality-card,
+  .select-option,
+  .selectable,
+  .tabs button,
+  .plans article a,
+  .plans article button,
+  .actions button,
+  .dropzone
+) {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform .2s cubic-bezier(.2,.75,.25,1),
+    box-shadow .22s ease,
+    border-color .22s ease,
+    background-color .22s ease,
+    color .22s ease,
+    filter .22s ease;
+}
+
+/* Slight lift and cool silver-blue glow. */
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  :where(
+    button:not(:disabled),
+    a,
+    [role="button"]:not([aria-disabled="true"]),
+    [role="option"],
+    [role="tab"],
+    .format-option,
+    .quality-option,
+    .format-card,
+    .quality-card,
+    .select-option,
+    .selectable,
+    .dropzone
+  ):hover {
+    transform: translateY(-2px) scale(1.015);
+    border-color: rgba(164,196,218,.72);
+    box-shadow:
+      0 7px 20px rgba(0,0,0,.28),
+      0 0 0 1px rgba(164,196,218,.10),
+      0 0 16px rgba(126,169,199,.16),
+      0 0 11px rgba(181,143,72,.08);
+    filter: brightness(1.07);
+  }
+
+  nav a:hover {
+    color: #e7f2fa;
+    text-shadow: 0 0 12px rgba(151,190,216,.42);
+  }
+
+  .gold-btn:hover {
+    box-shadow: 0 9px 28px rgba(184,138,50,.25), 0 0 16px rgba(170,199,220,.18);
+    filter: brightness(1.08);
+  }
+
+  .ahoy-account:hover,
+  .ahoy-usage:hover,
+  .plans article:hover {
+    border-color: rgba(164,196,218,.48);
+    box-shadow: 0 8px 24px rgba(0,0,0,.28), 0 0 16px rgba(126,169,199,.10);
+  }
+}
+
+/* A quick, restrained press-in animation. */
+:where(
+  button:not(:disabled),
+  a,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="option"],
+  [role="tab"],
+  .format-option,
+  .quality-option,
+  .format-card,
+  .quality-card,
+  .select-option,
+  .selectable,
+  .dropzone
+):active {
+  transform: translateY(0) scale(.965);
+  filter: brightness(.96);
+  transition-duration: .08s;
+}
+
+/* Keyboard users get a visible silver-blue focus ring. */
+:where(
+  button,
+  a,
+  [role="button"],
+  [role="option"],
+  [role="tab"],
+  .format-option,
+  .quality-option,
+  .format-card,
+  .quality-card,
+  .select-option,
+  .selectable,
+  input,
+  select,
+  textarea
+):focus-visible {
+  outline: 2px solid rgba(164,196,218,.82);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(126,169,199,.13), 0 0 14px rgba(126,169,199,.16);
+}
+
+/* Selected format/quality states remain visually clear. */
+:where(
+  .format-option,
+  .quality-option,
+  .format-card,
+  .quality-card,
+  .select-option,
+  .selectable,
+  [role="option"],
+  [role="tab"]
+).active,
+:where(
+  .format-option,
+  .quality-option,
+  .format-card,
+  .quality-card,
+  .select-option,
+  .selectable,
+  [role="option"],
+  [role="tab"]
+)[aria-selected="true"],
+:where(
+  .format-option,
+  .quality-option,
+  .format-card,
+  .quality-card,
+  .select-option,
+  .selectable
+).selected {
+  border-color: rgba(190,207,218,.62);
+  box-shadow: inset 0 0 0 1px rgba(164,196,218,.12), 0 0 13px rgba(126,169,199,.10);
+}
+
+/* Never animate disabled or hidden controls into view. */
+:where(button:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+  filter: saturate(.55);
+}
+[hidden],
+[aria-hidden="true"] {
+  pointer-events: none !important;
+}
+
+/* Preserve the site's existing reduced-motion accessibility behavior. */
+@media (prefers-reduced-motion: reduce) {
+  :where(
+    button, a, [role="button"], [role="option"], [role="tab"],
+    .format-option, .quality-option, .format-card, .quality-card,
+    .select-option, .selectable, .dropzone
+  ) {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
   }
 }
