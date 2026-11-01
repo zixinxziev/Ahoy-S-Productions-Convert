@@ -312,6 +312,36 @@ async function countUsage(key) {
   return count || 0;
 }
 
+// MEMBER: authenticated member's own daily usage
+app.get("/api/member/my-usage", auth, requiredAuth, async (req, res) => {
+  try {
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Member account not found" });
+
+    if (user.membership === "unlimited") {
+      return res.json({
+        username: user.username, membership: "unlimited", unlimited: true,
+        daily_limit: null, used: 0, remaining: null, reset_at: null
+      });
+    }
+
+    const dailyLimit = 10;
+    const used = await countUsage(`user:${user.username}`);
+    const resetAt = new Date();
+    resetAt.setUTCHours(24, 0, 0, 0);
+
+    return res.json({
+      username: user.username, membership: "free", unlimited: false,
+      daily_limit: dailyLimit, used,
+      remaining: Math.max(0, dailyLimit - used),
+      reset_at: resetAt.toISOString()
+    });
+  } catch (error) {
+    console.error("MY USAGE ERROR:", error);
+    return res.status(500).json({ error: "Unable to load member usage" });
+  }
+});
+
 // ===============================
 // FFMPEG CONVERSION
 // ===============================
