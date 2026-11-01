@@ -1,5 +1,5 @@
 const express=require("express"),cors=require("cors"),helmet=require("helmet"),rateLimit=require("express-rate-limit"),multer=require("multer"),ffmpeg=require("fluent-ffmpeg"),ffmpegPath=require("ffmpeg-static"),bcrypt=require("bcryptjs"),jwt=require("jsonwebtoken"),{createClient}=require("@supabase/supabase-js"),fs=require("fs"),path=require("path"),os=require("os"),crypto=require("crypto"),archiver=require("archiver");
-require("dotenv").config?.();
+require("dotenv").config();
 const app=express();ffmpeg.setFfmpegPath(ffmpegPath);app.use(helmet({crossOriginResourcePolicy:{policy:"cross-origin"}}));app.use(cors({origin:(process.env.CORS_ORIGIN||"*").split(","),exposedHeaders:["Content-Disposition"]}));app.use(express.json({limit:"1mb"}));app.use(rateLimit({windowMs:15*60*1000,max:100,standardHeaders:true,legacyHeaders:false}));
 if (
   !process.env.SUPABASE_URL ||
