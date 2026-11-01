@@ -1,8 +1,20 @@
 const express=require("express"),cors=require("cors"),helmet=require("helmet"),rateLimit=require("express-rate-limit"),multer=require("multer"),ffmpeg=require("fluent-ffmpeg"),ffmpegPath=require("ffmpeg-static"),bcrypt=require("bcryptjs"),jwt=require("jsonwebtoken"),{createClient}=require("@supabase/supabase-js"),fs=require("fs"),path=require("path"),os=require("os"),crypto=require("crypto"),archiver=require("archiver");
 require("dotenv").config?.();
 const app=express();ffmpeg.setFfmpegPath(ffmpegPath);app.use(helmet({crossOriginResourcePolicy:{policy:"cross-origin"}}));app.use(cors({origin:(process.env.CORS_ORIGIN||"*").split(","),exposedHeaders:["Content-Disposition"]}));app.use(express.json({limit:"1mb"}));app.use(rateLimit({windowMs:15*60*1000,max:100,standardHeaders:true,legacyHeaders:false}));
-const supabase=createClient(process.env.SUPABASE_URL||"https://example.supabase.co",process.env.SUPABASE_SERVICE_ROLE_KEY||"placeholder");const JWT=process.env.JWT_SECRET||"CHANGE_THIS_SECRET_BEFORE_DEPLOYING";const OUT=path.join(os.tmpdir(),"ahoys-converted");fs.mkdirSync(OUT,{recursive:true});
-const upload=multer({dest:path.join(os.tmpdir(),"ahoys-upload"),limits:{fileSize:100*1024*1024,files:1},fileFilter:(req,file,cb)=>{if(!/audio\/|application\/octet-stream/.test(file.mimetype))return cb(new Error("Unsupported file type"));cb(null,true)}});
+if (
+  !process.env.SUPABASE_URL ||
+  !process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  !process.env.JWT_SECRET
+) {
+  throw new Error("Missing required environment variables");
+}
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+const JWT = process.env.JWT_SECRET;const upload=multer({dest:path.join(os.tmpdir(),"ahoys-upload"),limits:{fileSize:100*1024*1024,files:1},fileFilter:(req,file,cb)=>{if(!/audio\/|application\/octet-stream/.test(file.mimetype))return cb(new Error("Unsupported file type"));cb(null,true)}});
 async function auth(req,res,next){let t=(req.headers.authorization||"").replace(/^Bearer /,"");if(!t)return next();try{req.user=jwt.verify(t,JWT);next()}catch{return res.status(401).json({error:"Invalid session"})}}
 async function requiredAuth(req,res,next){if(!req.user)return res.status(401).json({error:"Login required"});next()}
 async function userRow(username){let {data,error}=await supabase.from("users").select("*").eq("username",username).maybeSingle();if(error)throw error;return data}
