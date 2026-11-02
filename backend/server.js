@@ -694,6 +694,7 @@ function ffmpegExportSegment(input, output, start, duration, options) {
 app.post(
   "/api/convert",
   auth,
+  requiredAuth,
   upload.single("file"),
   async (req, res) => {
     const input = req.file?.path;
