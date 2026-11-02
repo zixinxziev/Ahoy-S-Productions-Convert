@@ -890,7 +890,7 @@ app.post("/api/roblox/oauth/start", auth, requiredAuth, async (req, res) => {
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", "openid profile asset:read asset:write");
     url.searchParams.set("response_type", "code");
-    url.searchParams.set("prompt", "select_account");
+    url.searchParams.set("prompt", "select_account consent");
     url.searchParams.set("state", state);
     return res.json({ authorizeUrl: url.toString() });
   } catch (error) {
