@@ -85,6 +85,14 @@ updateSpeed();
 
 // AUDIO CONVERTER
 $("convert").onclick = async () => {
+    // WAJIB LOGIN SEBELUM CONVERT
+  if (!localStorage.getItem("ahoyToken")) {
+    authMode = "login";
+    $("authMessage").textContent =
+      "Login atau register terlebih dahulu untuk menggunakan fitur Convert.";
+    $("authModal").classList.add("open");
+    return;
+  }
   if (!selected.length) return alert("Select audio files first.");
   $("convert").disabled = true;
   results = [];
