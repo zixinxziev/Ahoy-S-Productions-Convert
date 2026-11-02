@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -49,6 +48,20 @@ const supabase = createClient(
 );
 
 const JWT = process.env.JWT_SECRET;
+
+// Server-Sent Events: push membership changes to members who are online.
+// Each connected client is keyed by username; reconnecting clients are cleaned up.
+const memberStreams = new Map();
+function broadcastMembership(username, membership) {
+  const clients = memberStreams.get(username);
+  if (!clients) return;
+  const payload = `event: membership\ndata: ${JSON.stringify({ membership })}\n\n`;
+  for (const client of [...clients]) {
+    try { client.write(payload); }
+    catch { clients.delete(client); }
+  }
+  if (!clients.size) memberStreams.delete(username);
+}
 
 // ===============================
 // DIRECTORIES
@@ -287,6 +300,45 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(500).json({
       error: "Login service unavailable"
     });
+  }
+});
+
+// ===============================
+// MEMBER REALTIME MEMBERSHIP EVENTS
+// ===============================
+
+app.get("/api/member/events", auth, requiredAuth, async (req, res) => {
+  try {
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Member account not found" });
+
+    res.status(200);
+    res.set({
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no"
+    });
+    res.flushHeaders?.();
+    res.write(`event: membership\ndata: ${JSON.stringify({ membership: user.membership })}\n\n`);
+
+    if (!memberStreams.has(user.username)) memberStreams.set(user.username, new Set());
+    const clients = memberStreams.get(user.username);
+    clients.add(res);
+
+    const heartbeat = setInterval(() => {
+      if (!res.destroyed) res.write(": keep-alive\n\n");
+    }, 25000);
+
+    res.on("close", () => {
+      clearInterval(heartbeat);
+      clients.delete(res);
+      if (!clients.size) memberStreams.delete(user.username);
+    });
+  } catch (error) {
+    console.error("MEMBER EVENTS ERROR:", error);
+    if (!res.headersSent) res.status(500).json({ error: "Unable to start membership updates" });
+    else res.end();
   }
 });
 
@@ -727,7 +779,7 @@ app.patch(
         });
       }
 
-      const { error } = await supabase
+      const { data: updatedUser, error } = await supabase
         .from("users")
         .update({
           membership,
@@ -735,12 +787,21 @@ app.patch(
             ? new Date().toISOString()
             : null
         })
-        .eq("id", req.params.id);
+        .eq("id", req.params.id)
+        .select("id,username,membership")
+        .maybeSingle();
 
       if (error) throw error;
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Push immediately to every active session belonging to this username.
+      broadcastMembership(updatedUser.username, updatedUser.membership);
 
       return res.json({
-        ok: true
+        ok: true,
+        user: updatedUser
       });
 
     } catch (error) {
