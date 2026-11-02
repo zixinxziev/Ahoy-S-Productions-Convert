@@ -88,6 +88,11 @@
 }
 
 </style>
+<style>
+/* Automatic Roblox mode: speed and pitch are locked; Amplify stays editable. */
+.slider-control input:disabled{opacity:.42;cursor:not-allowed;filter:saturate(.35)}
+.slider-control:has(input:disabled){opacity:.78}
+</style>
 </head>
 <body>
 <div id="intro" class="intro"><div class="intro-mark">AHOY'S <span>PRODUCTIONS</span></div><div class="intro-line"></div><p>AUDIO CONVERTER</p><button id="skipIntro">SKIP INTRO</button></div>
@@ -146,8 +151,24 @@
 <script src="./js/app.js"></script>
 <script>
 (() => {
+ const $ = id => document.getElementById(id);
  const pairs=[["manualSpeed","manualSpeedValue",v=>`${Number(v).toFixed(2)}x`],["gain","gainValue",v=>`${Number(v)} dB`],["pitch","pitchValue",v=>`${Number(v)}%`]];
- pairs.forEach(([i,o,f])=>{const input=document.getElementById(i),output=document.getElementById(o);if(!input||!output)return;const update=()=>output.textContent=f(input.value);input.addEventListener("input",update);update();});
+ pairs.forEach(([i,o,f])=>{const input=$(i),output=$(o);if(!input||!output)return;const update=()=>output.textContent=f(input.value);input.addEventListener("input",update);update();});
+ const mode=$("robloxMode"), speed=$("manualSpeed"), pitch=$("pitch"), speedValue=$("manualSpeedValue"), pitchValue=$("pitchValue"), target=$("targetSpeed"), hint=$("speedHint");
+ function syncRobloxControls(){
+   const automatic=!!mode?.checked;
+   if(speed){speed.disabled=automatic;if(automatic)speed.value="1";}
+   if(pitch){pitch.disabled=automatic;if(automatic)pitch.value="0";}
+   if(automatic && $("preservePitch")) $("preservePitch").checked=true;
+   if(speedValue) speedValue.textContent=automatic?"AUTO":`${Number(speed.value).toFixed(2)}x`;
+   if(pitchValue) pitchValue.textContent=automatic?"AUTO":"0%";
+   if(hint && target){const t=Math.max(.05,Math.min(2,Number(target.value)||1));hint.textContent=automatic?`AUTO MODE · Target ${t.toFixed(2)}x · Speed and pitch compensation are controlled automatically. Only Amplify remains manual.`:`Manual mode · Speed and Pitch can be adjusted independently.`;}
+ }
+ mode?.addEventListener("change",syncRobloxControls);
+ target?.addEventListener("input",syncRobloxControls);
+ speed?.addEventListener("input",()=>{if(!mode?.checked && speedValue)speedValue.textContent=`${Number(speed.value).toFixed(2)}x`;});
+ pitch?.addEventListener("input",()=>{if(!mode?.checked && pitchValue)pitchValue.textContent=`${Number(pitch.value).toFixed(1)}%`;});
+ syncRobloxControls();
 })();
 </script>
 
