@@ -1,3 +1,4 @@
+```
 <!doctype html>
 <html lang="id">
 <head>
@@ -51,6 +52,41 @@
 /* Slightly reduce the Hero headline so it has more breathing room beside the tablet. */
 .hero h1{font-size:clamp(44px,7vw,82px);letter-spacing:2px;}
 @media(max-width:480px){.hero h1{font-size:clamp(40px,10.5vw,54px);letter-spacing:1.5px;}}
+
+/* Compact converter layout inspired by the supplied reference screenshot */
+#converter{max-width:1500px}
+#converter .dropzone{min-height:210px}
+.compact-top-settings,.compact-extra-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:22px 0}
+.compact-top-settings label,.compact-extra-settings label{display:grid;gap:9px;color:#aaa}
+.compact-top-settings select,.compact-extra-settings select,.compact-extra-settings input,.target-speed-card input{
+ width:100%;min-height:56px;padding:0 18px;border:1px solid #303036;border-radius:15px;background:#080808;color:#f2f2f4;font:inherit;font-size:18px;box-sizing:border-box
+}
+.roblox-target-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin:22px 0}
+.roblox-original-card,.target-speed-card{min-height:170px;padding:24px;border:1px solid #29292f;border-radius:22px;background:linear-gradient(145deg,#202024,#17171a);box-sizing:border-box}
+.roblox-main-toggle{display:flex!important;align-items:center;gap:18px;color:#eee!important;cursor:pointer}
+.roblox-main-toggle input{width:30px;height:30px;accent-color:#dcae3f;flex:0 0 auto}
+.roblox-main-toggle span{display:grid;gap:10px}
+.roblox-main-toggle strong{font-size:21px;color:#f0f0f2}
+.roblox-main-toggle small{font-size:17px;line-height:1.55;color:#d0cfd4}
+.preserve-hidden{display:none!important}
+.target-speed-card label{display:block;color:#e9c86f;font-size:21px;font-weight:700;margin-bottom:18px}
+.target-speed-card input{border-color:#86651d;font-size:30px;font-weight:700;min-height:84px}
+.target-speed-card p{color:#a6a4ae;font-size:16px;line-height:1.5;margin:14px 0 0}
+.compact-sliders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:26px 0}
+.slider-control{display:grid;gap:12px;color:#aaa}
+.slider-control>span{display:flex;justify-content:flex-start;gap:14px;align-items:center;font-size:16px}
+.slider-control b{color:#e8c45f;font-size:18px}
+.slider-control input[type=range]{width:100%;accent-color:#dcae3f;cursor:pointer}
+.compact-extra-settings{margin-top:26px}
+@media(max-width:760px){
+ .compact-top-settings,.compact-extra-settings{grid-template-columns:1fr;gap:12px}
+ .roblox-target-grid{grid-template-columns:1fr;gap:12px}
+ .compact-sliders{grid-template-columns:1fr;gap:18px}
+ .roblox-original-card,.target-speed-card{padding:18px;min-height:unset}
+ .roblox-main-toggle strong{font-size:18px}.roblox-main-toggle small{font-size:14px}
+ .target-speed-card input{font-size:24px;min-height:68px}
+}
+
 </style>
 </head>
 <body>
@@ -73,20 +109,32 @@
 <section id="converter" class="panel">
 <div class="section-head"><div><div class="eyebrow">01 / AUDIO ENGINE</div><h2 data-i18n="converterTitle">Audio Converter</h2></div><span class="pill">BULK READY</span></div>
 <div id="dropzone" class="dropzone"><input id="files" type="file" accept="audio/*" multiple hidden><div class="upload-icon">＋</div><b data-i18n="dropTitle">Drop audio files here</b><p data-i18n="dropSub">atau klik untuk memilih beberapa file sekaligus</p><button id="browse" class="outline">Browse Files</button><div id="fileList" class="file-list"></div></div>
-<div class="settings">
+<div class="compact-top-settings">
 <label>Output Format<select id="format"><option>mp3</option><option>wav</option><option>flac</option><option>m4a</option><option>aac</option><option>ogg</option><option>opus</option></select></label>
 <label>MP3 Bitrate<select id="bitrate"><option>128</option><option>192</option><option>256</option><option selected>320</option></select></label>
 <label>Sample Rate<select id="sampleRate"><option>22050</option><option>44100</option><option selected>48000</option><option>96000</option></select></label>
-<label>Roblox Target PlaybackSpeed<input id="targetSpeed" type="number" min=".05" max="2" step=".01" value="0.47"></label>
-<label>Manual Speed<input id="manualSpeed" type="number" min=".5" max="2" step=".01" value="1"></label>
-<label>Amplify (dB)<input id="gain" type="number" min="-20" max="20" step=".5" value="0"></label>
-<label>Pitch (semitones)<input id="pitch" type="number" min="-12" max="12" step=".1" value="0"></label>
-<label>Trim Start (sec)<input id="trimStart" type="number" min="0" step=".1" value="0"></label>
-<label>Trim Duration (sec)<input id="trimDuration" type="number" min="0" step=".1" placeholder="0 = full audio"></label>
+</div>
+<div class="roblox-target-grid">
+ <div class="roblox-original-card">
+  <label class="roblox-main-toggle"><input id="robloxMode" type="checkbox" checked><span><strong>Roblox Original Sound</strong><small>Match source pitch and tempo after Roblox applies PlaybackSpeed; keep manual Pitch at 0%.</small></span></label>
+  <label class="preserve-hidden"><input id="preservePitch" type="checkbox" checked> Preserve pitch</label>
+ </div>
+ <div class="target-speed-card">
+  <label for="targetSpeed">Target Roblox PlaybackSpeed</label>
+  <input id="targetSpeed" type="number" min=".05" max="2" step=".01" value="0.47">
+  <p id="speedHint">Audio akan dikonversi sesuai target PlaybackSpeed dan pitch dikompensasi otomatis.</p>
+ </div>
+</div>
+<div class="compact-sliders">
+ <label class="slider-control"><span>Speed <b id="manualSpeedValue">1.00x</b></span><input id="manualSpeed" type="range" min=".5" max="2" step=".01" value="1"></label>
+ <label class="slider-control"><span>Amplify <b id="gainValue">0 dB</b></span><input id="gain" type="range" min="-20" max="20" step=".5" value="0"></label>
+ <label class="slider-control"><span>Pitch <b id="pitchValue">0%</b></span><input id="pitch" type="range" min="-12" max="12" step=".1" value="0"></label>
+</div>
+<div class="compact-extra-settings">
+<label>Trim mulai (detik)<input id="trimStart" type="number" min="0" step=".1" value="0"></label>
+<label>Trim durasi (detik)<input id="trimDuration" type="number" min="0" step=".1" placeholder="0 = full audio"></label>
 <label>WAV Bit Depth<select id="wavBits"><option>16</option><option selected>24</option></select></label>
 </div>
-<div class="toggle-row"><label><input id="robloxMode" type="checkbox" checked> Roblox target mode (auto speed + pitch compensation)</label><label><input id="preservePitch" type="checkbox" checked> Preserve pitch</label></div>
-<p class="hint" id="speedHint">Target 0.47x → calculated processing speed 2.1277x. Actual playback may vary by Roblox encoding.</p>
 <div class="actions"><button id="convert" class="gold-btn">CONVERT ALL</button><button id="downloadZip" class="outline" disabled>DOWNLOAD ALL ZIP</button></div>
 <div id="jobs" class="jobs"></div>
 <div class="preview-grid"><div><h3>Original Preview</h3><audio id="originalPreview" controls></audio></div><div><h3>Converted Preview</h3><audio id="convertedPreview" controls></audio></div></div>
@@ -96,6 +144,13 @@
 <footer>© AHOY'S PRODUCTIONS · PREMIUM AUDIO TOOLS</footer>
 <div id="authModal" class="modal"><div class="modal-card"><button class="close" id="closeModal">×</button><h2>Account</h2><div class="tabs"><button id="loginTab">Login</button><button id="registerTab">Register</button></div><form id="authForm"><input id="username" placeholder="Username" required minlength="3"><input id="password" type="password" placeholder="Password" required minlength="8"><button class="gold-btn" type="submit">Continue</button></form><p id="authMessage"></p><small>Registration starts as Free. Contact the owner with your username for permanent Unlimited activation.</small></div></div>
 <script src="./js/app.js"></script>
+<script>
+(() => {
+ const pairs=[["manualSpeed","manualSpeedValue",v=>`${Number(v).toFixed(2)}x`],["gain","gainValue",v=>`${Number(v)} dB`],["pitch","pitchValue",v=>`${Number(v)}%`]];
+ pairs.forEach(([i,o,f])=>{const input=document.getElementById(i),output=document.getElementById(o);if(!input||!output)return;const update=()=>output.textContent=f(input.value);input.addEventListener("input",update);update();});
+})();
+</script>
+
 <script>
 /* AHOY'S tablet pointer interaction — visual only, no converter logic touched. */
 (() => {
@@ -126,3 +181,4 @@
 })();
 </script>
 </body></html>
+```
