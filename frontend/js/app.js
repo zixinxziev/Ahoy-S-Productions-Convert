@@ -362,10 +362,221 @@ function renderAccount() {
     localStorage.removeItem("ahoyToken");
     localStorage.removeItem("ahoyUsername");
     localStorage.removeItem("ahoyMembership");
+    stopMembershipUpdates();
+    $('ahoyAdminPanel')?.remove();
     renderAccount();
   };
   loadMyUsage();
+  startMembershipUpdates();
+  loadAdminPanel();
   updateAccountScrollState();
+}
+
+// ===============================
+// REALTIME MEMBERSHIP UPDATES
+// ===============================
+let membershipStreamController = null;
+let membershipFallbackTimer = null;
+
+function applyMembershipChange(membership) {
+  if (!['free', 'unlimited'].includes(membership)) return;
+  const previous = localStorage.getItem('ahoyMembership') || 'free';
+  localStorage.setItem('ahoyMembership', membership);
+  const status = document.querySelector('.ahoy-account-details small');
+  if (status) status.textContent = `ONLINE · ${membership.toUpperCase()}`;
+  if (previous !== membership) loadMyUsage();
+}
+
+function stopMembershipUpdates() {
+  if (membershipStreamController) membershipStreamController.abort();
+  membershipStreamController = null;
+  if (membershipFallbackTimer) clearInterval(membershipFallbackTimer);
+  membershipFallbackTimer = null;
+}
+
+async function startMembershipUpdates() {
+  stopMembershipUpdates();
+  const token = localStorage.getItem('ahoyToken');
+  if (!token) return;
+
+  // SSE provides immediate updates. A light polling fallback covers proxies
+  // or hosts that interrupt long-lived streaming connections.
+  membershipFallbackTimer = setInterval(async () => {
+    const currentToken = localStorage.getItem('ahoyToken');
+    if (!currentToken) return stopMembershipUpdates();
+    try {
+      const response = await fetch(API + '/api/member/my-usage', {
+        headers: { Authorization: 'Bearer ' + currentToken },
+        cache: 'no-store'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        applyMembershipChange(data.membership);
+      }
+    } catch (_) {}
+  }, 15000);
+
+  membershipStreamController = new AbortController();
+  const signal = membershipStreamController.signal;
+  (async () => {
+    while (!signal.aborted && localStorage.getItem('ahoyToken')) {
+      try {
+        const response = await fetch(API + '/api/member/events', {
+          headers: { Authorization: 'Bearer ' + localStorage.getItem('ahoyToken') },
+          cache: 'no-store',
+          signal
+        });
+        if (!response.ok || !response.body) throw new Error('Realtime stream unavailable');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (!signal.aborted) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split(/\r?\n\r?\n/);
+          buffer = events.pop() || '';
+          for (const eventText of events) {
+            const dataLine = eventText.split(/\r?\n/).find(line => line.startsWith('data:'));
+            if (!dataLine) continue;
+            try { applyMembershipChange(JSON.parse(dataLine.slice(5).trim()).membership); }
+            catch (_) {}
+          }
+        }
+      } catch (error) {
+        if (signal.aborted) break;
+      }
+      if (!signal.aborted) await new Promise(resolve => setTimeout(resolve, 2500));
+    }
+  })();
+}
+
+// ===============================
+// ADMIN PANEL
+// ===============================
+function ensureAdminStyles() {
+  if ($('ahoyAdminStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'ahoyAdminStyles';
+  style.textContent = `
+    #ahoyAdminPanel{width:min(920px,calc(100% - 32px));margin:24px auto;padding:22px;border:1px solid rgba(214,174,91,.28);border-radius:18px;background:linear-gradient(145deg,rgba(24,24,27,.97),rgba(10,10,12,.97));color:#f4f0e8;box-shadow:0 18px 55px rgba(0,0,0,.28)}
+    #ahoyAdminPanel .ahoy-admin-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    #ahoyAdminPanel h2{margin:0;font-size:18px;letter-spacing:.12em;color:#e5c47e}
+    #ahoyAdminPanel .ahoy-admin-meta{font-size:12px;color:#aaa}
+    #ahoyAdminPanel input{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #45413a;border-radius:10px;background:#111;color:#fff;margin-bottom:14px;outline:none}
+    #ahoyAdminPanel .ahoy-admin-list{display:grid;gap:9px}
+    #ahoyAdminPanel .ahoy-admin-user{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025)}
+    #ahoyAdminPanel .ahoy-admin-user strong{display:block;font-size:14px;overflow-wrap:anywhere}
+    #ahoyAdminPanel .ahoy-admin-user small{display:block;margin-top:4px;color:#aaa;font-size:11px}
+    #ahoyAdminPanel .ahoy-admin-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+    #ahoyAdminPanel button{border:1px solid rgba(218,183,112,.55);border-radius:9px;padding:9px 12px;background:rgba(190,150,75,.12);color:#f0d69b;font-weight:700;cursor:pointer}
+    #ahoyAdminPanel button:disabled{opacity:.45;cursor:wait}
+    #ahoyAdminPanel .ahoy-admin-user.is-unlimited{border-color:rgba(218,183,112,.3)}
+    #ahoyAdminPanel .ahoy-admin-error{color:#ff9b9b;font-size:13px}
+    @media(max-width:560px){#ahoyAdminPanel{padding:16px}#ahoyAdminPanel .ahoy-admin-user{align-items:flex-start;flex-direction:column}#ahoyAdminPanel .ahoy-admin-actions{width:100%}#ahoyAdminPanel .ahoy-admin-actions button{flex:1}}
+  `;
+  document.head.appendChild(style);
+}
+
+let adminUsersCache = [];
+async function loadAdminPanel() {
+  const account = $('accountStatus');
+  if (!account) return;
+  const token = localStorage.getItem('ahoyToken');
+  if (!token) return;
+  try {
+    const response = await fetch(API + '/api/admin/users', {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    if (response.status === 401 || response.status === 403) {
+      $('ahoyAdminPanel')?.remove();
+      return;
+    }
+    if (!response.ok) throw new Error('Unable to load admin users');
+    adminUsersCache = await response.json();
+    ensureAdminStyles();
+    let panel = $('ahoyAdminPanel');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'ahoyAdminPanel';
+      account.insertAdjacentElement('afterend', panel);
+    }
+    renderAdminUsers();
+  } catch (error) {
+    let panel = $('ahoyAdminPanel');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'ahoyAdminPanel';
+      account.insertAdjacentElement('afterend', panel);
+    }
+    panel.innerHTML = `<p class="ahoy-admin-error">${escapeHtml(error.message)}</p><button type="button" id="ahoyAdminRetry">Retry</button>`;
+    $('ahoyAdminRetry')?.addEventListener('click', loadAdminPanel);
+  }
+}
+
+function renderAdminUsers(filter = '') {
+  const panel = $('ahoyAdminPanel');
+  if (!panel) return;
+  const query = filter.trim().toLowerCase();
+  const users = adminUsersCache.filter(user =>
+    String(user.username || '').toLowerCase().includes(query)
+  );
+  panel.innerHTML = `
+    <div class="ahoy-admin-head"><div><h2>ADMIN CONTROL</h2><div class="ahoy-admin-meta">Manage member access · ${adminUsersCache.length} accounts</div></div><button type="button" id="ahoyAdminRefresh">Refresh</button></div>
+    <input id="ahoyAdminSearch" type="search" placeholder="Search username..." autocomplete="off">
+    <div class="ahoy-admin-list" id="ahoyAdminList"></div>
+  `;
+  $('ahoyAdminSearch').value = filter;
+  const list = $('ahoyAdminList');
+  if (!users.length) {
+    list.innerHTML = '<div class="ahoy-admin-meta">No users found.</div>';
+  } else {
+    list.innerHTML = users.map(user => {
+      const unlimited = user.membership === 'unlimited';
+      const role = user.is_admin ? 'ADMIN ACCOUNT' : (unlimited ? 'UNLIMITED' : 'FREE');
+      const action = unlimited ? 'Revoke Unlimited' : 'Grant Unlimited';
+      const disabled = user.is_admin ? 'disabled title="Admin accounts are protected"' : '';
+      return `<div class="ahoy-admin-user ${unlimited ? 'is-unlimited' : ''}" data-username="${escapeHtml(user.username).toLowerCase()}">
+        <div><strong>${escapeHtml(user.username)}</strong><small>${role} · Joined ${user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</small></div>
+        <div class="ahoy-admin-actions"><button type="button" data-membership-id="${escapeHtml(user.id)}" data-membership-next="${unlimited ? 'free' : 'unlimited'}" ${disabled}>${action}</button></div>
+      </div>`;
+    }).join('');
+  }
+  $('ahoyAdminSearch').addEventListener('input', e => {
+    const value = e.target.value.trim().toLowerCase();
+    list.querySelectorAll('.ahoy-admin-user').forEach(row => {
+      row.style.display = row.dataset.username.includes(value) ? '' : 'none';
+    });
+  });
+  $('ahoyAdminRefresh').addEventListener('click', loadAdminPanel);
+  list.querySelectorAll('[data-membership-id]').forEach(button => {
+    button.addEventListener('click', () => updateAdminMembership(button));
+  });
+}
+
+async function updateAdminMembership(button) {
+  const id = button.dataset.membershipId;
+  const membership = button.dataset.membershipNext;
+  const user = adminUsersCache.find(item => String(item.id) === String(id));
+  if (!user || !confirm(`${membership === 'unlimited' ? 'Grant' : 'Revoke'} Unlimited for ${user.username}?`)) return;
+  const token = localStorage.getItem('ahoyToken');
+  button.disabled = true;
+  button.textContent = 'Saving...';
+  try {
+    const response = await fetch(API + '/api/admin/users/' + encodeURIComponent(id) + '/membership', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ membership })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Membership update failed');
+    await loadAdminPanel();
+  } catch (error) {
+    alert(error.message);
+    button.disabled = false;
+    button.textContent = membership === 'unlimited' ? 'Grant Unlimited' : 'Revoke Unlimited';
+  }
 }
 
 // LOGIN / REGISTER MODAL
