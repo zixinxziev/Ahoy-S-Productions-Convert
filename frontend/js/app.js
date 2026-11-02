@@ -129,7 +129,12 @@ $("convert").onclick = async () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Conversion failed");
 
-      results.push({ name: data.filename, url: API + data.downloadUrl });
+      const convertedRecord = {
+        name: data.filename,
+        downloadName: data.downloadFilename || data.filename,
+        url: API + data.downloadUrl
+      };
+      results.push(convertedRecord);
       row.querySelector("p").textContent = "Completed";
       row.querySelector("progress").value = 100;
 
@@ -138,8 +143,9 @@ $("convert").onclick = async () => {
 
       row.insertAdjacentHTML(
         "beforeend",
-        `<p><a href="${API + data.downloadUrl}" download>Download ${escapeHtml(data.filename)}</a></p>`
+        `<p><a href="${API + data.downloadUrl}" download="${escapeHtml(data.downloadFilename || data.filename)}">Download ${escapeHtml(data.downloadFilename || data.filename)}</a></p>`
       );
+      attachRobloxUploadControl(row, convertedRecord);
       if (i === 0) $("convertedPreview").src = API + data.downloadUrl;
     }
     $("downloadZip").disabled = !results.length;
@@ -159,7 +165,7 @@ $("downloadZip").onclick = async () => {
       "Content-Type": "application/json",
       ...(token ? { Authorization: "Bearer " + token } : {})
     },
-    body: JSON.stringify({ files: results.map(x => x.name) })
+    body: JSON.stringify({ files: results.map(x => ({ name: x.name, downloadName: x.downloadName })) })
   });
   if (!r.ok) {
     let e = await r.json();
@@ -172,6 +178,343 @@ $("downloadZip").onclick = async () => {
   a.click();
   URL.revokeObjectURL(a.href);
 };
+
+
+// ===============================
+// AHOY'S AUTO SPLIT
+// ===============================
+function initAhoyAutoSplit() {
+  if ($("ahoyAutoSplit")) return;
+  const anchor = $("jobs") || $("downloadZip");
+  if (!anchor?.parentElement) return;
+
+  const style = document.createElement("style");
+  style.id = "ahoyAutoSplitStyles";
+  style.textContent = `
+    #ahoyAutoSplit{margin:22px 0;padding:18px;border:1px solid rgba(214,174,91,.28);border-radius:16px;background:linear-gradient(145deg,rgba(24,24,27,.96),rgba(10,10,12,.96));color:#f4f0e8}
+    #ahoyAutoSplit h3{margin:0 0 6px;color:#e5c47e;font-size:17px;letter-spacing:.04em}
+    #ahoyAutoSplit p{margin:0;color:#aaa;font-size:12px;line-height:1.6}
+    #ahoyAutoSplit .as-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+    #ahoyAutoSplit button,#ahoyAutoSplit select{border:1px solid rgba(218,183,112,.4);border-radius:9px;padding:10px 13px;background:#171717;color:#f0d69b;font-weight:700}
+    #ahoyAutoSplit button{cursor:pointer}
+    #ahoyAutoSplit button:disabled{opacity:.5;cursor:wait}
+    #ahoyAutoSplit .as-file{color:#ddd;font-size:12px;overflow-wrap:anywhere}
+    #ahoyAutoSplit .as-parts{display:grid;gap:7px;margin-top:14px}
+    #ahoyAutoSplit .as-part{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.025);font-size:12px}
+    #ahoyAutoSplit .as-part a{color:#e5c47e;text-decoration:none;font-weight:700}
+    #ahoyAutoSplit .as-status{margin-top:12px;color:#e5c47e;font-size:12px}
+    @media(max-width:560px){#ahoyAutoSplit{padding:14px}#ahoyAutoSplit .as-row>*{width:100%;box-sizing:border-box}#ahoyAutoSplit .as-part{align-items:flex-start;flex-direction:column}}
+  `;
+  document.head.appendChild(style);
+
+  anchor.insertAdjacentHTML("afterend", `
+    <section id="ahoyAutoSplit">
+      <h3>AHOY'S AUTO SPLIT</h3>
+      <p>Potong audio panjang menjadi beberapa part berurutan. Audio tetap utuh, maksimal 6 menit per part, dan nama file asli dipertahankan.</p>
+      <input id="ahoySplitFile" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus" hidden>
+      <div class="as-row">
+        <button type="button" id="ahoySplitBrowse">Pilih Audio</button>
+        <span class="as-file" id="ahoySplitFileName">Belum ada file dipilih</span>
+        <label for="ahoySplitMinutes">Maks. durasi part</label>
+        <select id="ahoySplitMinutes">
+          <option value="6" selected>6 menit</option>
+          <option value="5">5 menit</option>
+          <option value="4">4 menit</option>
+          <option value="3">3 menit</option>
+          <option value="2">2 menit</option>
+          <option value="1">1 menit</option>
+        </select>
+        <button type="button" id="ahoySplitStart">AUTO SPLIT</button>
+        <button type="button" id="ahoySplitZip" disabled>DOWNLOAD ZIP</button>
+      </div>
+      <div class="as-status" id="ahoySplitStatus" aria-live="polite"></div>
+      <div class="as-row"><button type="button" id="ahoySplitUploadAll" disabled>UPLOAD SEMUA PART KE ROBLOX</button></div>
+      <div class="as-parts" id="ahoySplitParts"></div>
+    </section>
+  `);
+
+  let splitFile = null;
+  let splitResults = [];
+  $("ahoySplitBrowse").onclick = () => $("ahoySplitFile").click();
+  $("ahoySplitFile").onchange = event => {
+    splitFile = event.target.files?.[0] || null;
+    $("ahoySplitFileName").textContent = splitFile ? `${splitFile.name} · ${(splitFile.size / 1048576).toFixed(2)} MB` : "Belum ada file dipilih";
+    splitResults = [];
+    $("ahoySplitParts").innerHTML = "";
+    $("ahoySplitZip").disabled = true;
+    $("ahoySplitStatus").textContent = "";
+  };
+
+  $("ahoySplitStart").onclick = async () => {
+    if (!splitFile) return alert("Pilih satu file audio terlebih dahulu.");
+    const button = $("ahoySplitStart");
+    button.disabled = true;
+    $("ahoySplitZip").disabled = true;
+    $("ahoySplitParts").innerHTML = "";
+    $("ahoySplitStatus").textContent = "Memproses audio dan membagi part...";
+    try {
+      const form = new FormData();
+      form.append("file", splitFile);
+      form.append("options", JSON.stringify({
+        format: $("format")?.value || "mp3",
+        bitrate: $("bitrate")?.value || "320",
+        sampleRate: $("sampleRate")?.value || "48000",
+        wavBits: $("wavBits")?.value || "24",
+        partMinutes: $("ahoySplitMinutes").value
+      }));
+      const token = localStorage.getItem("ahoyToken");
+      const response = await fetch(API + "/api/split", {
+        method: "POST",
+        headers: token ? { Authorization: "Bearer " + token } : {},
+        body: form
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Auto Split failed");
+      splitResults = data.files || [];
+      $("ahoySplitStatus").textContent = `Selesai · ${data.partCount} part · ${(data.duration / 60).toFixed(2)} menit total`;
+      $("ahoySplitParts").innerHTML = "";
+      splitResults.forEach(file => {
+        const item = document.createElement("div");
+        item.className = "as-part";
+        const name = document.createElement("span");
+        name.textContent = file.downloadFilename;
+        const download = document.createElement("a");
+        download.href = API + file.downloadUrl;
+        download.download = file.downloadFilename;
+        download.textContent = "Download";
+        item.append(name, download);
+        attachRobloxUploadControl(item, file);
+        $("ahoySplitParts").append(item);
+      });
+      $("ahoySplitZip").disabled = !splitResults.length;
+      $("ahoySplitUploadAll").disabled = !splitResults.length;
+      if (localStorage.getItem("ahoyToken")) updateMyUsageAfterConversion();
+    } catch (error) {
+      $("ahoySplitStatus").textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  };
+
+  $("ahoySplitUploadAll").onclick = async () => {
+    if (!splitResults.length) return;
+    const button = $("ahoySplitUploadAll");
+    button.disabled = true;
+    let completed = 0;
+    for (const file of splitResults) {
+      const result = await uploadAudioToRoblox(file);
+      completed++;
+      if (!result.ok) {
+        $("ahoySplitStatus").textContent = `Upload ${completed}/${splitResults.length}: ${result.error}`;
+        break;
+      }
+      const row = [...$("ahoySplitParts").children].find(el => el.textContent.includes(file.downloadFilename));
+      const status = row?.querySelector(".ahoy-roblox-upload-status");
+      if (status) status.textContent = `Uploaded · Audio ID: ${result.assetId}`;
+      $("ahoySplitStatus").textContent = `Roblox upload ${completed}/${splitResults.length} selesai...`;
+    }
+    if (completed === splitResults.length) $("ahoySplitStatus").textContent = `Semua ${completed} part berhasil dikirim ke Roblox.`;
+    button.disabled = false;
+  };
+
+  $("ahoySplitZip").onclick = async () => {
+    if (!splitResults.length) return;
+    const button = $("ahoySplitZip");
+    button.disabled = true;
+    try {
+      const token = localStorage.getItem("ahoyToken");
+      const response = await fetch(API + "/api/download-zip", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: "Bearer " + token } : {})
+        },
+        body: JSON.stringify({ files: splitResults.map(file => ({ name: file.filename, downloadName: file.downloadFilename })) })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "ZIP unavailable");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "ahoys-auto-split.zip";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  };
+}
+
+// ===============================
+// ROBLOX CREATOR HUB CONNECTION + UPLOAD
+// ===============================
+async function robloxRequest(path, options = {}) {
+  const token = localStorage.getItem("ahoyToken");
+  const response = await fetch(API + path, {
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: "Bearer " + token } : {}),
+      ...(options.headers || {})
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "Roblox request failed");
+  return data;
+}
+
+async function uploadAudioToRoblox(file) {
+  try {
+    const data = await robloxRequest("/api/roblox/upload", {
+      method: "POST",
+      body: JSON.stringify({
+        filename: file.filename || file.name,
+        displayName: (file.downloadFilename || file.downloadName || "Audio").replace(/\.[^.]+$/, ""),
+        description: "Uploaded with Ahoy's Audio Converter"
+      })
+    });
+    return { ok: true, assetId: data.assetId, username: data.robloxUsername };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+}
+
+function attachRobloxUploadControl(parent, file) {
+  const wrap = document.createElement("div");
+  wrap.className = "ahoy-roblox-upload-wrap";
+  wrap.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:7px";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ahoy-roblox-upload-button";
+  button.textContent = "UPLOAD TO ROBLOX";
+  button.style.cssText = "border:1px solid rgba(218,183,112,.4);border-radius:8px;padding:8px 11px;background:#171717;color:#f0d69b;font-size:11px;font-weight:800;cursor:pointer";
+  const status = document.createElement("span");
+  status.className = "ahoy-roblox-upload-status";
+  status.style.cssText = "font-size:11px;color:#e5c47e;overflow-wrap:anywhere";
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    status.textContent = "Uploading to Roblox...";
+    const result = await uploadAudioToRoblox(file);
+    if (result.ok) {
+      status.textContent = `Uploaded · Audio ID: ${result.assetId}`;
+      status.title = `Creator: ${result.username || "Roblox account"}`;
+    } else {
+      status.textContent = result.error;
+    }
+    button.disabled = false;
+  });
+  wrap.append(button, status);
+  parent.append(wrap);
+}
+
+function initAhoyRobloxUpload() {
+  if ($("ahoyRobloxUploadPanel")) return;
+  const anchor = $("ahoyAutoSplit") || $("jobs") || $("downloadZip");
+  if (!anchor?.parentElement) return;
+  const style = document.createElement("style");
+  style.id = "ahoyRobloxUploadStyles";
+  style.textContent = `
+    #ahoyRobloxUploadPanel{margin:18px 0;padding:18px;border:1px solid rgba(214,174,91,.28);border-radius:16px;background:linear-gradient(145deg,rgba(24,24,27,.96),rgba(10,10,12,.96));color:#f4f0e8}
+    #ahoyRobloxUploadPanel h3{margin:0 0 6px;color:#e5c47e;font-size:17px;letter-spacing:.04em}
+    #ahoyRobloxUploadPanel p{margin:0;color:#aaa;font-size:12px;line-height:1.6}
+    #ahoyRobloxUploadPanel .aru-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:13px}
+    #ahoyRobloxUploadPanel button{border:1px solid rgba(218,183,112,.4);border-radius:9px;padding:10px 13px;background:#171717;color:#f0d69b;font-weight:700;cursor:pointer}
+    #ahoyRobloxUploadPanel button:disabled{opacity:.5;cursor:wait}
+    #ahoyRobloxUploadStatus{margin-top:10px;color:#e5c47e;font-size:12px;overflow-wrap:anywhere}
+    @media(max-width:560px){#ahoyRobloxUploadPanel{padding:14px}#ahoyRobloxUploadPanel .aru-row>*{width:100%;box-sizing:border-box}}
+  `;
+  document.head.appendChild(style);
+  anchor.insertAdjacentHTML("afterend", `
+    <section id="ahoyRobloxUploadPanel">
+      <h3>ROBLOX CREATOR HUB</h3>
+      <p>Hubungkan akun Roblox milikmu. Setelah terhubung, file hasil Convert dan Auto Split bisa langsung di-upload ke akun tersebut.</p>
+      <div class="aru-row">
+        <button type="button" id="ahoyRobloxConnect">CONNECT ROBLOX ACCOUNT</button>
+        <button type="button" id="ahoyRobloxDisconnect" hidden>DISCONNECT</button>
+      </div>
+      <div id="ahoyRobloxUploadStatus" aria-live="polite">Login ke Ahoy terlebih dahulu untuk menghubungkan Roblox.</div>
+    </section>
+  `);
+
+  const connect = $("ahoyRobloxConnect");
+  const disconnect = $("ahoyRobloxDisconnect");
+  const status = $("ahoyRobloxUploadStatus");
+  async function refresh() {
+    if (!localStorage.getItem("ahoyToken")) {
+      status.textContent = "Login ke Ahoy terlebih dahulu untuk menghubungkan Roblox.";
+      connect.disabled = true;
+      disconnect.hidden = true;
+      return;
+    }
+    connect.disabled = true;
+    try {
+      const data = await robloxRequest("/api/roblox/status");
+      if (data.connected) {
+        status.textContent = `Terhubung sebagai @${data.robloxUsername} · Roblox User ID ${data.robloxUserId}`;
+        connect.textContent = "ROBLOX CONNECTED";
+        disconnect.hidden = false;
+      } else {
+        status.textContent = "Belum ada akun Roblox yang terhubung.";
+        connect.textContent = "CONNECT ROBLOX ACCOUNT";
+        disconnect.hidden = true;
+      }
+    } catch (error) {
+      status.textContent = error.message;
+      connect.textContent = "CONNECT ROBLOX ACCOUNT";
+      disconnect.hidden = true;
+    } finally {
+      connect.disabled = false;
+    }
+  }
+  connect.onclick = async () => {
+    if (!localStorage.getItem("ahoyToken")) {
+      status.textContent = "Login ke Ahoy terlebih dahulu.";
+      return;
+    }
+    connect.disabled = true;
+    status.textContent = "Mengarahkan ke halaman izin resmi Roblox...";
+    try {
+      const data = await robloxRequest("/api/roblox/oauth/start", { method: "POST", body: "{}" });
+      window.location.assign(data.authorizeUrl);
+    } catch (error) {
+      status.textContent = error.message;
+      connect.disabled = false;
+    }
+  };
+  disconnect.onclick = async () => {
+    if (!confirm("Putuskan koneksi akun Roblox dari Ahoy?")) return;
+    disconnect.disabled = true;
+    try {
+      await robloxRequest("/api/roblox/disconnect", { method: "POST", body: "{}" });
+      status.textContent = "Akun Roblox berhasil diputuskan.";
+      connect.textContent = "CONNECT ROBLOX ACCOUNT";
+      disconnect.hidden = true;
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      disconnect.disabled = false;
+    }
+  };
+  refresh();
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("roblox") === "connected") {
+    status.textContent = "Akun Roblox berhasil dihubungkan.";
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    refresh();
+  } else if (params.get("roblox") === "error") {
+    status.textContent = params.get("message") || "Koneksi Roblox gagal.";
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  }
+  window.ahoyRefreshRobloxStatus = refresh;
+}
+
+initAhoyAutoSplit();
+initAhoyRobloxUpload();
 
 // MEMBER USAGE
 let usageCountdownTimer = null;
@@ -615,6 +958,7 @@ $("authForm").onsubmit = async e => {
     $("authModal").classList.remove("open");
     accountManuallyHidden = false;
     renderAccount();
+    window.ahoyRefreshRobloxStatus?.();
   } catch (err) {
     $("authMessage").textContent = err.message;
   } finally {
