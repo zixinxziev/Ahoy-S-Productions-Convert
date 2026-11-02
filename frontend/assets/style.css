@@ -960,3 +960,57 @@ header #accountStatus {
     animation: none !important;
   }
 }
+
+/* AHOY'S — SILVER BLUE CLICK FEEDBACK */
+
+/* Warna tab Login/Register yang sedang dipilih */
+.tabs button.active,
+.tabs button[aria-selected="true"] {
+  background: linear-gradient(135deg, #91adc3, #dceaf4, #9bb6cc) !important;
+  color: #101820 !important;
+  border-color: #d4e7f5 !important;
+  box-shadow:
+    0 0 0 1px rgba(190, 220, 240, .2),
+    0 0 16px rgba(143, 184, 213, .22);
+}
+
+/* Semua tombol dan elemen interaktif saat ditekan */
+:where(
+  button:not(:disabled),
+  a,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="option"],
+  .format-option,
+  .quality-option,
+  .format-card,
+  .quality-card,
+  .select-option,
+  .selectable,
+  .dropzone
+):active {
+  background: linear-gradient(
+    135deg,
+    #7898b2,
+    #dceaf4,
+    #91adc3
+  ) !important;
+
+  color: #101820 !important;
+  border-color: #dceaf4 !important;
+
+  box-shadow:
+    0 0 0 1px rgba(210, 232, 248, .25),
+    0 0 18px rgba(143, 184, 213, .35),
+    inset 0 0 10px rgba(255,255,255,.12) !important;
+
+  transform: scale(.97);
+  filter: brightness(1.08);
+  transition: .08s ease !important;
+}
+
+/* Hindari efek pada tombol disabled */
+button:disabled,
+[aria-disabled="true"] {
+  pointer-events: none;
+}
