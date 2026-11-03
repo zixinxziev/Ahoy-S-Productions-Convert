@@ -73,15 +73,54 @@ $("dropzone").ondrop = e => {
   addFiles(e.dataTransfer.files);
 };
 
-// SPEED SETTINGS
-function updateSpeed() {
-  const target = Number($("targetSpeed").value) || 1;
-  const calc = 1 / target;
-  $("speedHint").textContent =
-    `Target ${target.toFixed(2)}x → calculated processing speed ${calc.toFixed(4)}x. Roblox playback may vary after platform encoding.`;
+// ROBLOX PLAYBACK COMPENSATION
+// OFF: process at the chosen custom speed (including its matching pitch shift),
+// then set Roblox PlaybackSpeed to the reciprocal so Studio playback returns
+// to the source tempo and pitch. ON keeps the existing target-speed workflow.
+function getRobloxTargetSpeed() {
+  const originalMode = Boolean($("robloxMode")?.checked);
+  if (originalMode) return Math.max(0.05, Math.min(2, Number($("targetSpeed")?.value) || 1));
+  const custom = Math.max(0.5, Math.min(3, Number($("manualSpeed")?.value) || 1));
+  return 1 / custom;
 }
-["targetSpeed", "robloxMode"].forEach(id => $(id).addEventListener("input", updateSpeed));
-updateSpeed();
+function syncRobloxModeUI() {
+  const originalMode = Boolean($("robloxMode")?.checked);
+  const custom = Math.max(0.5, Math.min(3, Number($("manualSpeed")?.value) || 1));
+  const target = getRobloxTargetSpeed();
+  const targetInput = $("targetSpeed");
+  const speedInput = $("manualSpeed");
+  const pitchInput = $("pitch");
+  if (targetInput && !originalMode) targetInput.value = target.toFixed(4);
+  if (targetInput) targetInput.readOnly = !originalMode;
+  if (speedInput) {
+    speedInput.min = "0.5";
+    speedInput.max = "3";
+    speedInput.disabled = originalMode;
+  }
+  if (pitchInput) pitchInput.disabled = !originalMode;
+  if (!originalMode && $("preservePitch")) $("preservePitch").checked = false;
+  const speedValue = $("manualSpeedValue");
+  const pitchValue = $("pitchValue");
+  if (speedValue) speedValue.textContent = originalMode ? "AUTO" : `${custom.toFixed(2)}x`;
+  if (pitchValue) {
+    const pitchPercent = (custom - 1) * 100;
+    pitchValue.textContent = originalMode ? "AUTO" : `AUTO ${pitchPercent >= 0 ? "+" : ""}${pitchPercent.toFixed(1)}%`;
+  }
+  const hint = $("speedHint");
+  if (hint) hint.textContent = originalMode
+    ? `AUTO MODE · Target ${target.toFixed(2)}x · Existing Roblox Original Sound compensation is active.`
+    : `MANUAL MODE · Custom Speed ${custom.toFixed(2)}x → Target Roblox PlaybackSpeed ${target.toFixed(4)}x · Pitch is automatically matched and compensated.`;
+}
+// Window bubble listeners run after the page's inline control listeners, keeping
+// the displayed automatic values in sync without requiring an index.html rewrite.
+window.addEventListener("input", event => {
+  if (["manualSpeed", "targetSpeed", "robloxMode"].includes(event.target?.id)) syncRobloxModeUI();
+});
+window.addEventListener("change", event => {
+  if (["manualSpeed", "targetSpeed", "robloxMode"].includes(event.target?.id)) syncRobloxModeUI();
+});
+syncRobloxModeUI();
+document.addEventListener("DOMContentLoaded", syncRobloxModeUI);
 
 // AUDIO CONVERTER
 $("convert").onclick = async () => {
@@ -108,7 +147,7 @@ $("convert").onclick = async () => {
         format: $("format").value,
         bitrate: $("bitrate").value,
         sampleRate: $("sampleRate").value,
-        targetSpeed: $("targetSpeed").value,
+        targetSpeed: getRobloxTargetSpeed(),
         manualSpeed: $("manualSpeed").value,
         robloxMode: $("robloxMode").checked,
         preservePitch: $("preservePitch").checked,
@@ -267,7 +306,7 @@ function initAhoyAutoSplit() {
         bitrate: $("bitrate")?.value || "320",
         sampleRate: $("sampleRate")?.value || "48000",
         wavBits: $("wavBits")?.value || "24",
-        targetSpeed: $("targetSpeed")?.value || "1",
+        targetSpeed: getRobloxTargetSpeed(),
         manualSpeed: $("manualSpeed")?.value || "1",
         robloxMode: Boolean($("robloxMode")?.checked),
         preservePitch: Boolean($("preservePitch")?.checked),
