@@ -511,18 +511,24 @@ function ffmpegConvert(input, output, options) {
 
     const filters = [];
 
-    const speed = options.robloxMode
+    const originalMode = Boolean(options.robloxMode);
+    const speed = originalMode
       ? 1 / Math.max(0.05, Number(options.targetSpeed) || 1)
-      : Math.max(0.5, Math.min(2, Number(options.manualSpeed) || 1));
+      : Math.max(0.5, Math.min(3, Number(options.manualSpeed) || 1));
 
-    const pitch = Math.max(
-      -12,
-      Math.min(12, Number(options.pitch) || 0)
-    );
-
+    const pitch = originalMode
+      ? Math.max(-12, Math.min(12, Number(options.pitch) || 0))
+      : 0;
     const pitchRatio = Math.pow(2, pitch / 12);
 
-    if (options.preservePitch) {
+    // Manual mode intentionally couples tempo and pitch: Roblox later applies
+    // the reciprocal PlaybackSpeed, cancelling both changes together.
+    if (!originalMode) {
+      filters.push(
+        `asetrate=${Math.round(sampleRate * speed)}`,
+        `aresample=${sampleRate}`
+      );
+    } else if (options.preservePitch) {
       if (pitch !== 0) {
         filters.push(
           `asetrate=${Math.round(sampleRate * pitchRatio)}`,
@@ -684,13 +690,20 @@ function ffmpegExportSegment(input, output, start, duration, options) {
     // Match ffmpegConvert(): apply Roblox target speed or manual speed, pitch,
     // preserve-pitch processing, and gain independently to every extracted part.
     const filters = [];
-    const speed = options.robloxMode
+    const originalMode = Boolean(options.robloxMode);
+    const speed = originalMode
       ? 1 / Math.max(0.05, Number(options.targetSpeed) || 1)
-      : Math.max(0.5, Math.min(2, Number(options.manualSpeed) || 1));
-    const pitch = Math.max(-12, Math.min(12, Number(options.pitch) || 0));
+      : Math.max(0.5, Math.min(3, Number(options.manualSpeed) || 1));
+    const pitch = originalMode ? Math.max(-12, Math.min(12, Number(options.pitch) || 0)) : 0;
     const pitchRatio = Math.pow(2, pitch / 12);
 
-    if (options.preservePitch) {
+    if (!originalMode) {
+      // Same reciprocal-speed + pitch compensation as the regular converter.
+      filters.push(
+        `asetrate=${Math.round(sampleRate * speed)}`,
+        `aresample=${sampleRate}`
+      );
+    } else if (options.preservePitch) {
       if (pitch !== 0) {
         filters.push(
           `asetrate=${Math.round(sampleRate * pitchRatio)}`,
