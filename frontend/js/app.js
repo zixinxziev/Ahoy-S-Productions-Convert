@@ -200,10 +200,15 @@ function initAhoyAutoSplit() {
     #ahoyAutoSplit button:disabled{opacity:.5;cursor:wait}
     #ahoyAutoSplit .as-file{color:#ddd;font-size:12px;overflow-wrap:anywhere}
     #ahoyAutoSplit .as-parts{display:grid;gap:7px;margin-top:14px}
-    #ahoyAutoSplit .as-part{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.025);font-size:12px}
+    #ahoyAutoSplit .as-part{display:block;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025);font-size:12px}
+    #ahoyAutoSplit .as-part-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    #ahoyAutoSplit .as-part-name{color:#eee;font-weight:700;overflow-wrap:anywhere}
     #ahoyAutoSplit .as-part a{color:#e5c47e;text-decoration:none;font-weight:700}
+    #ahoyAutoSplit .as-part-range{margin-top:4px;color:#999;font-size:11px}
+    #ahoyAutoSplit .as-preview-label{margin-top:12px;color:#c8b27f;font-size:10px;font-weight:800;letter-spacing:.08em}
+    #ahoyAutoSplit .as-preview{display:block;width:100%;height:38px;margin-top:6px;filter:sepia(.12);}
     #ahoyAutoSplit .as-status{margin-top:12px;color:#e5c47e;font-size:12px}
-    @media(max-width:560px){#ahoyAutoSplit{padding:14px}#ahoyAutoSplit .as-row>*{width:100%;box-sizing:border-box}#ahoyAutoSplit .as-part{align-items:flex-start;flex-direction:column}}
+    @media(max-width:560px){#ahoyAutoSplit{padding:14px}#ahoyAutoSplit .as-row>*{width:100%;box-sizing:border-box}}
   `;
   document.head.appendChild(style);
 
@@ -284,13 +289,44 @@ function initAhoyAutoSplit() {
       splitResults.forEach(file => {
         const item = document.createElement("div");
         item.className = "as-part";
-        const name = document.createElement("span");
+
+        const head = document.createElement("div");
+        head.className = "as-part-head";
+        const details = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "as-part-name";
         name.textContent = file.downloadFilename;
+        const range = document.createElement("div");
+        range.className = "as-part-range";
+        const formatTime = seconds => {
+          const total = Math.max(0, Math.floor(Number(seconds) || 0));
+          return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+        };
+        range.textContent = `Sumber ${formatTime(file.start)} – ${formatTime((Number(file.start) || 0) + (Number(file.duration) || 0))}`;
+        details.append(name, range);
+
         const download = document.createElement("a");
         download.href = API + file.downloadUrl;
         download.download = file.downloadFilename;
         download.textContent = "Download";
-        item.append(name, download);
+        head.append(details, download);
+
+        const previewLabel = document.createElement("div");
+        previewLabel.className = "as-preview-label";
+        previewLabel.textContent = "PREVIEW AUDIO HASIL CONVERT";
+        const preview = document.createElement("audio");
+        preview.className = "as-preview";
+        preview.controls = true;
+        preview.preload = "none";
+        preview.src = API + (file.previewUrl || ("/api/preview/" + encodeURIComponent(file.filename)));
+        preview.setAttribute("aria-label", `Preview ${file.downloadFilename}`);
+        preview.addEventListener("play", () => {
+          document.querySelectorAll("#ahoySplitParts audio.as-preview").forEach(other => {
+            if (other !== preview) other.pause();
+          });
+        });
+
+        item.append(head, previewLabel, preview);
         attachRobloxUploadControl(item, file);
         $("ahoySplitParts").append(item);
       });
