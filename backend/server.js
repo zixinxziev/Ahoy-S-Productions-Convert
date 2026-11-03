@@ -673,12 +673,52 @@ function ffmpegExportSegment(input, output, start, duration, options) {
       ogg: "libvorbis",
       opus: "libopus"
     };
+
     const cmd = ffmpeg(input)
       .setStartTime(start)
       .duration(duration)
       .audioFrequency(sampleRate)
       .audioCodec(codecs[format] || "libmp3lame")
       .output(output);
+
+    // Match ffmpegConvert(): apply Roblox target speed or manual speed, pitch,
+    // preserve-pitch processing, and gain independently to every extracted part.
+    const filters = [];
+    const speed = options.robloxMode
+      ? 1 / Math.max(0.05, Number(options.targetSpeed) || 1)
+      : Math.max(0.5, Math.min(2, Number(options.manualSpeed) || 1));
+    const pitch = Math.max(-12, Math.min(12, Number(options.pitch) || 0));
+    const pitchRatio = Math.pow(2, pitch / 12);
+
+    if (options.preservePitch) {
+      if (pitch !== 0) {
+        filters.push(
+          `asetrate=${Math.round(sampleRate * pitchRatio)}`,
+          `aresample=${sampleRate}`,
+          `atempo=${1 / pitchRatio}`
+        );
+      }
+      let remainingSpeed = speed;
+      while (remainingSpeed > 2) {
+        filters.push("atempo=2");
+        remainingSpeed /= 2;
+      }
+      while (remainingSpeed < 0.5) {
+        filters.push("atempo=0.5");
+        remainingSpeed /= 0.5;
+      }
+      filters.push(`atempo=${remainingSpeed}`);
+    } else {
+      const combinedRate = speed * pitchRatio;
+      filters.push(
+        `asetrate=${Math.round(sampleRate * combinedRate)}`,
+        `aresample=${sampleRate}`
+      );
+    }
+
+    const gain = Number(options.gain) || 0;
+    if (gain !== 0) filters.push(`volume=${gain}dB`);
+    if (filters.length) cmd.audioFilters(filters);
 
     if (format === "mp3") {
       cmd.audioBitrate(Math.max(64, Math.min(320, Number(options.bitrate) || 320)));
@@ -694,7 +734,6 @@ function ffmpegExportSegment(input, output, start, duration, options) {
 app.post(
   "/api/convert",
   auth,
-  requiredAuth,
   upload.single("file"),
   async (req, res) => {
     const input = req.file?.path;
@@ -789,7 +828,7 @@ app.post(
 );
 
 // ===============================
-// AUTO SPLIT AUDIO (MAX 6 MINUTES PER PART)
+// AUTO SPLIT AUDIO (USER-SELECTED 1–6 MINUTES PER PART)
 // ===============================
 
 app.post(
@@ -823,8 +862,11 @@ app.post(
       if (!["mp3", "wav", "flac", "m4a", "aac", "ogg", "opus"].includes(format)) {
         return res.status(400).json({ error: "Invalid output format" });
       }
-      const requestedMinutes = Number(options.partMinutes) || 6;
-      const partSeconds = Math.max(30, Math.min(360, requestedMinutes * 60));
+      const requestedMinutes = Number(options.partMinutes);
+      if (![1, 2, 3, 4, 5, 6].includes(requestedMinutes)) {
+        return res.status(400).json({ error: "Choose a part duration from 1 to 6 minutes." });
+      }
+      const partSeconds = requestedMinutes * 60;
       const duration = await probeAudioDuration(input);
       const partCount = Math.ceil(duration / partSeconds);
       if (partCount > 200) {
@@ -865,6 +907,13 @@ app.post(
         duration,
         partCount: createdFiles.length,
         maxPartSeconds: partSeconds,
+        appliedEffects: {
+          speed: true,
+          pitch: true,
+          preservePitch: Boolean(options.preservePitch),
+          gain: true
+        },
+        trimApplied: false,
         files: createdFiles
       });
     } catch (error) {
@@ -891,7 +940,7 @@ app.post("/api/roblox/oauth/start", auth, requiredAuth, async (req, res) => {
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", "openid profile asset:read asset:write");
     url.searchParams.set("response_type", "code");
-    url.searchParams.set("prompt", "consent");
+    url.searchParams.set("prompt", "login consent");
     url.searchParams.set("state", state);
     return res.json({ authorizeUrl: url.toString() });
   } catch (error) {
