@@ -85,14 +85,6 @@ updateSpeed();
 
 // AUDIO CONVERTER
 $("convert").onclick = async () => {
-    // WAJIB LOGIN SEBELUM CONVERT
-  if (!localStorage.getItem("ahoyToken")) {
-    authMode = "login";
-    $("authMessage").textContent =
-      "Login atau register terlebih dahulu untuk menggunakan fitur Convert.";
-    $("authModal").classList.add("open");
-    return;
-  }
   if (!selected.length) return alert("Select audio files first.");
   $("convert").disabled = true;
   results = [];
@@ -218,12 +210,12 @@ function initAhoyAutoSplit() {
   anchor.insertAdjacentHTML("afterend", `
     <section id="ahoyAutoSplit">
       <h3>AHOY'S AUTO SPLIT</h3>
-      <p>Potong audio panjang menjadi beberapa part berurutan. Audio tetap utuh, maksimal 6 menit per part, dan nama file asli dipertahankan.</p>
+      <p>Potong audio panjang menjadi beberapa part berurutan. Pilih durasi setiap part: 1 sampai 6 menit. Semua part otomatis di-convert.</p>
       <input id="ahoySplitFile" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus" hidden>
       <div class="as-row">
         <button type="button" id="ahoySplitBrowse">Pilih Audio</button>
         <span class="as-file" id="ahoySplitFileName">Belum ada file dipilih</span>
-        <label for="ahoySplitMinutes">Maks. durasi part</label>
+        <label for="ahoySplitMinutes">Durasi setiap part</label>
         <select id="ahoySplitMinutes">
           <option value="6" selected>6 menit</option>
           <option value="5">5 menit</option>
@@ -263,11 +255,19 @@ function initAhoyAutoSplit() {
     try {
       const form = new FormData();
       form.append("file", splitFile);
+      // Auto Split applies the same audio effects as the main converter to EACH part.
+      // Trim is intentionally excluded so the complete source timeline is preserved.
       form.append("options", JSON.stringify({
         format: $("format")?.value || "mp3",
         bitrate: $("bitrate")?.value || "320",
         sampleRate: $("sampleRate")?.value || "48000",
         wavBits: $("wavBits")?.value || "24",
+        targetSpeed: $("targetSpeed")?.value || "1",
+        manualSpeed: $("manualSpeed")?.value || "1",
+        robloxMode: Boolean($("robloxMode")?.checked),
+        preservePitch: Boolean($("preservePitch")?.checked),
+        gain: $("gain")?.value || "0",
+        pitch: $("pitch")?.value || "0",
         partMinutes: $("ahoySplitMinutes").value
       }));
       const token = localStorage.getItem("ahoyToken");
