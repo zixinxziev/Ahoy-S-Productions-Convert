@@ -889,6 +889,7 @@ app.post(
           filename,
           downloadFilename,
           downloadUrl: "/api/download/" + encodeURIComponent(filename),
+          previewUrl: "/api/preview/" + encodeURIComponent(filename),
           part: index + 1,
           start,
           duration: segmentDuration
@@ -1149,6 +1150,45 @@ app.get("/api/download/:name", (req, res) => {
 
   const storedBase = name.includes("__") ? name.split("__").slice(1).join("__") : name;
   return res.download(filePath, safeArchiveName(storedBase));
+});
+
+// ===============================
+// INLINE AUDIO PREVIEW (supports browser byte-range playback/seeking)
+// ===============================
+
+app.get("/api/preview/:name", (req, res) => {
+  const name = path.basename(req.params.name);
+  if (!isStoredAudioName(name)) {
+    return res.status(400).json({ error: "Invalid filename" });
+  }
+
+  const filePath = path.join(OUT, name);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: "Preview expired or not found" });
+  }
+
+  const mimeTypes = {
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+    ".flac": "audio/flac",
+    ".m4a": "audio/mp4",
+    ".aac": "audio/aac",
+    ".ogg": "audio/ogg",
+    ".opus": "audio/ogg"
+  };
+  const contentType = mimeTypes[path.extname(name).toLowerCase()];
+  if (!contentType) return res.status(415).json({ error: "Unsupported preview format" });
+
+  const displayName = safeArchiveName(name.includes("__") ? name.split("__").slice(1).join("__") : name);
+  const encodedDisplayName = encodeURIComponent(displayName).replace(/[!'()*]/g, char =>
+    "%" + char.charCodeAt(0).toString(16).toUpperCase()
+  );
+  res.setHeader("Content-Type", contentType);
+  res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodedDisplayName}`);
+  res.setHeader("Cache-Control", "private, max-age=300");
+  return res.sendFile(filePath, { acceptRanges: true }, error => {
+    if (error && !res.headersSent) res.status(error.statusCode || 500).end();
+  });
 });
 
 // ===============================
