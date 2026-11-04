@@ -92,6 +92,73 @@
 /* Automatic Roblox mode: speed and pitch are locked; Amplify stays editable. */
 .slider-control input:disabled{opacity:.42;cursor:not-allowed;filter:saturate(.35)}
 .slider-control:has(input:disabled){opacity:.78}
+
+
+/* AHOY landing gate: retain the site's existing black / gold / silver-blue palette. */
+body:not(.is-authenticated) #converter,
+body:not(.is-authenticated) #membership,
+body:not(.is-authenticated) footer {display:none!important}
+body.is-authenticated .landing-auth,
+body.is-authenticated .landing-copy,
+body.is-authenticated .ahoy-tablet {display:none!important}
+body.is-authenticated .hero{display:none!important}
+body:not(.is-authenticated) .hero{
+  min-height:calc(100vh - 76px);padding:42px clamp(18px,5vw,76px);
+  display:flex;align-items:center;justify-content:center;gap:clamp(28px,5vw,76px);
+  text-align:left;overflow:hidden;
+}
+body:not(.is-authenticated) .ahoy-tablet{
+  position:relative;left:auto;top:auto;flex:0 1 278px;width:278px;
+  transform:perspective(900px) rotateY(8deg) rotateX(2deg);
+  margin:0;opacity:1;
+}
+.landing-copy{display:none}
+.landing-auth{
+  display:flex!important;position:relative;inset:auto;z-index:2;
+  width:min(350px,calc(100vw - 36px));padding:0;background:transparent;
+  align-items:center;justify-content:center;flex:0 0 auto;
+}
+.landing-auth .modal-card{
+  width:100%;padding:24px 23px;border-radius:10px;
+  background:linear-gradient(145deg,#17130e,#0b0b0b);
+  border:1px solid rgba(212,175,55,.38);
+  box-shadow:0 22px 70px #0009,0 0 24px rgba(130,157,177,.08);
+}
+.landing-auth .close{display:none}
+.landing-auth .modal-card h2{margin:0;text-align:center;font-size:23px;letter-spacing:1.5px}
+.landing-auth .modal-card>small{display:block;margin-top:14px;text-align:center}
+.landing-auth .tabs{justify-content:center}
+.landing-auth .tabs button{flex:1}
+.landing-auth #authMessage{min-height:16px;text-align:center}
+.landing-auth input{
+  min-height:44px;padding:11px 13px;border-radius:6px;
+  background:#080808;color:#f4f0e8;border:1px solid #39332a;
+}
+.landing-auth input:focus{outline:none;border-color:#9f895b;box-shadow:0 0 0 3px rgba(177,147,83,.12)}
+.landing-auth form button{min-height:44px}
+body:not(.is-authenticated) #accountBtn{display:none!important}
+body:not(.is-authenticated) header nav a{display:inline-flex}
+body:not(.is-authenticated) header nav a{opacity:.85}
+body:not(.is-authenticated) header nav a:hover{opacity:1}
+body:not(.is-authenticated) .ahoy-tablet{animation:ahoyTabletFloat 5s ease-in-out infinite,ahoyTabletIn .9s .3s both}
+@media(max-width:800px){
+ body:not(.is-authenticated) .hero{
+   min-height:calc(100vh - 105px);padding:34px 18px 50px;
+   flex-direction:column;gap:25px;
+ }
+ body:not(.is-authenticated) .ahoy-tablet{width:min(245px,72vw);flex:0 0 auto}
+ .landing-auth{width:min(350px,calc(100vw - 36px))}
+ body:not(.is-authenticated) header nav a{display:inline-flex}
+}
+@media(max-width:480px){
+ .landing-auth .modal-card{padding:20px 18px}
+ body:not(.is-authenticated) .hero{gap:20px}
+ body:not(.is-authenticated) .ahoy-tablet{width:min(220px,68vw);padding:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ body:not(.is-authenticated) .ahoy-tablet{animation:none!important}
+}
+
 </style>
 </head>
 <body>
@@ -109,8 +176,12 @@
     <div class="tablet-status tablet-upload"><span class="tablet-status-icon">↑</span><span><small>UPLOAD STATUS</small><strong>PUSHED SUCCESSFULLY</strong></span><em>DONE</em></div>
     <div class="tablet-foot"><span>AHOY AUDIO PIPELINE</span><span class="tablet-foot-dots">● ● ●</span></div>
   </div>
-  <div class="eyebrow">PREMIUM AUDIO PROCESSING</div><h1>AHOY'S <em>AUDIO</em><br>CONVERTER</h1><p data-i18n="heroText">Convert audio dengan kontrol penuh, kualitas terjaga, dan workflow yang simpel.</p><a class="gold-btn" href="#converter" data-i18n="start">START CONVERTING</a>
-</section>
+  <div class="landing-copy">
+    <div class="eyebrow">PREMIUM AUDIO PROCESSING</div>
+    <h1>AHOY'S <em>AUDIO</em><br>CONVERTER</h1>
+    <p>Masuk untuk menikmati pengalaman audio converter AHOY'S PRODUCTIONS.</p>
+  </div>
+  <div id="authModal" class="modal landing-auth"><div class="modal-card"><button class="close" id="closeModal">×</button><h2>Account</h2><div class="tabs"><button id="loginTab">Login</button><button id="registerTab">Register</button></div><form id="authForm"><input id="username" placeholder="Username" required minlength="3"><input id="password" type="password" placeholder="Password" required minlength="8"><button class="gold-btn" type="submit">Continue</button></form><p id="authMessage"></p><small>Registration starts as Free. Contact the owner with your username for permanent Unlimited activation.</small></div></div></section>
 <section id="converter" class="panel">
 <div class="section-head"><div><div class="eyebrow">01 / AUDIO ENGINE</div><h2 data-i18n="converterTitle">Audio Converter</h2></div><span class="pill">BULK READY</span></div>
 <div id="dropzone" class="dropzone"><input id="files" type="file" accept="audio/*" multiple hidden><div class="upload-icon">＋</div><b data-i18n="dropTitle">Drop audio files here</b><p data-i18n="dropSub">atau klik untuk memilih beberapa file sekaligus</p><button id="browse" class="outline">Browse Files</button><div id="fileList" class="file-list"></div></div>
@@ -147,7 +218,7 @@
 <section id="membership" class="membership"><div class="eyebrow">02 / MEMBERSHIP</div><h2>Choose your access</h2><div class="plans"><article><h3>FREE</h3><div class="price">10 <small>conversions / day</small></div><p>All converter features, including Bulk, within daily quota.</p></article><article class="featured"><h3>AHOY'S UNLIMITED</h3><div class="price">∞ <small>permanent access</small></div><p>Unlimited conversions and Bulk processing. Activated manually by admin.</p></article></div></section>
 </main>
 <footer>© AHOY'S PRODUCTIONS · PREMIUM AUDIO TOOLS</footer>
-<div id="authModal" class="modal"><div class="modal-card"><button class="close" id="closeModal">×</button><h2>Account</h2><div class="tabs"><button id="loginTab">Login</button><button id="registerTab">Register</button></div><form id="authForm"><input id="username" placeholder="Username" required minlength="3"><input id="password" type="password" placeholder="Password" required minlength="8"><button class="gold-btn" type="submit">Continue</button></form><p id="authMessage"></p><small>Registration starts as Free. Contact the owner with your username for permanent Unlimited activation.</small></div></div>
+
 <script src="./js/app.js"></script>
 <script>
 (() => {
