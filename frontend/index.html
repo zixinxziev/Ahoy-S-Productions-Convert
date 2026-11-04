@@ -42,11 +42,11 @@
   --tablet-shift-x:0px;--tablet-shift-y:0px;
   transform:perspective(1100px) translate3d(var(--tablet-shift-x),var(--tablet-shift-y),0) rotateX(var(--tablet-tilt-x)) rotateY(calc(8deg + var(--tablet-tilt-y)));
   transform-style:preserve-3d;will-change:transform;
-  transition:transform .16s cubic-bezier(.18,.78,.22,1),box-shadow .25s ease,border-color .25s ease;
+  transition:transform .48s cubic-bezier(.2,.72,.25,1),box-shadow .5s ease,border-color .5s ease;
   background-image:radial-gradient(circle at var(--tablet-glow-x) var(--tablet-glow-y),rgba(173,211,235,.17),transparent 38%),linear-gradient(145deg,rgba(30,39,47,.94),rgba(9,12,16,.97) 55%,rgba(31,25,15,.96));
 }
-.ahoy-tablet.is-pointer-active{border-color:rgba(190,220,240,.68);box-shadow:0 28px 65px #000b,0 0 34px rgba(116,175,210,.22),inset 0 1px rgba(255,255,255,.16)}
-@media(max-width:800px){.ahoy-tablet{transform:perspective(1100px) translate3d(var(--tablet-shift-x),var(--tablet-shift-y),0) rotateX(var(--tablet-tilt-x)) rotateY(var(--tablet-tilt-y))}}
+.ahoy-tablet.is-pointer-active{border-color:rgba(190,220,240,.68);box-shadow:0 24px 58px #000b,0 0 18px rgba(116,175,210,.12),inset 0 1px rgba(255,255,255,.12)}
+@media(max-width:800px){.ahoy-tablet{transform:perspective(1100px) translate3d(var(--tablet-shift-x),var(--tablet-shift-y),0) rotateX(var(--tablet-tilt-x)) rotateY(var(--tablet-tilt-y)) rotateZ(var(--tablet-shy-rotate)) scale(var(--tablet-shy-scale))}}
 @media(prefers-reduced-motion:reduce){.ahoy-tablet{transition:none!important;will-change:auto}}
 
 
@@ -265,21 +265,31 @@ body:not(.is-authenticated) .ahoy-tablet{animation:ahoyTabletFloat 5s ease-in-ou
     const x = clamp((latest.clientX - heroBounds.left) / heroBounds.width, 0, 1);
     const y = clamp((latest.clientY - heroBounds.top) / heroBounds.height, 0, 1);
 
-    /* Stronger full-hero response: tablet follows cursor horizontally and vertically. */
-    const shiftX = (x - 0.5) * 76;
-    const shiftY = (y - 0.5) * 38;
+    /* Soft, shy reaction: the tablet gently leans away when the cursor gets close. */
     const tabletX = clamp((latest.clientX - tabletBounds.left) / tabletBounds.width, 0, 1);
     const tabletY = clamp((latest.clientY - tabletBounds.top) / tabletBounds.height, 0, 1);
-    const tiltY = (x - 0.5) * -30;
-    const tiltX = (0.5 - y) * 20;
+    const inside = latest.clientX >= tabletBounds.left && latest.clientX <= tabletBounds.right &&
+                   latest.clientY >= tabletBounds.top && latest.clientY <= tabletBounds.bottom;
+
+    // A subtle idle follow across the hero; stronger only while the cursor touches the tablet.
+    const nearX = clamp((latest.clientX - (tabletBounds.left + tabletBounds.width / 2)) / (tabletBounds.width * 0.7), -1, 1);
+    const nearY = clamp((latest.clientY - (tabletBounds.top + tabletBounds.height / 2)) / (tabletBounds.height * 0.7), -1, 1);
+    const shiftX = inside ? -nearX * 5 : clamp((x - 0.5) * 12, -6, 6);
+    const shiftY = inside ? -nearY * 3 : clamp((y - 0.5) * 8, -4, 4);
+    const tiltY = inside ? -nearX * 5 : clamp((x - 0.5) * -5, -2.5, 2.5);
+    const tiltX = inside ? nearY * 3 : clamp((0.5 - y) * 4, -2, 2);
+    const shyRotate = inside ? nearX * 1.8 : 0;
+    const shyScale = inside ? 0.992 : 1;
 
     tablet.style.setProperty('--tablet-shift-x', `${shiftX.toFixed(1)}px`);
     tablet.style.setProperty('--tablet-shift-y', `${shiftY.toFixed(1)}px`);
     tablet.style.setProperty('--tablet-tilt-y', `${tiltY.toFixed(1)}deg`);
     tablet.style.setProperty('--tablet-tilt-x', `${tiltX.toFixed(1)}deg`);
+    tablet.style.setProperty('--tablet-shy-rotate', `${shyRotate.toFixed(1)}deg`);
+    tablet.style.setProperty('--tablet-shy-scale', shyScale);
     tablet.style.setProperty('--tablet-glow-x', `${(tabletX * 100).toFixed(1)}%`);
     tablet.style.setProperty('--tablet-glow-y', `${(tabletY * 100).toFixed(1)}%`);
-    tablet.classList.add('is-pointer-active');
+    tablet.classList.toggle('is-pointer-active', inside);
   };
 
   hero.addEventListener('pointermove', event => {
