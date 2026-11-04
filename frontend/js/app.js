@@ -744,7 +744,14 @@ function updateAccountScrollState() {
 window.addEventListener("scroll", updateAccountScrollState, { passive: true });
 
 // ACCOUNT PROFILE
+function syncPageAccess() {
+  const authenticated = Boolean(localStorage.getItem("ahoyToken") && localStorage.getItem("ahoyUsername"));
+  document.body.classList.toggle("is-authenticated", authenticated);
+  const authPanel = $("authModal");
+  if (authPanel) authPanel.classList.toggle("open", !authenticated);
+}
 function renderAccount() {
+  syncPageAccess();
   const username = localStorage.getItem("ahoyUsername");
   const membership = localStorage.getItem("ahoyMembership");
   const accountBtn = $("accountBtn");
@@ -791,6 +798,7 @@ function renderAccount() {
     stopMembershipUpdates();
     $('ahoyAdminPanel')?.remove();
     renderAccount();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
   loadMyUsage();
   startMembershipUpdates();
@@ -1041,6 +1049,7 @@ $("authForm").onsubmit = async e => {
     $("authModal").classList.remove("open");
     accountManuallyHidden = false;
     renderAccount();
+    document.getElementById("converter")?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.ahoyRefreshRobloxStatus?.();
   } catch (err) {
     $("authMessage").textContent = err.message;
@@ -1103,6 +1112,18 @@ function initAhoyCursor() {
     glow.classList.remove("cursor-away");
   });
 }
+
+
+// Public navigation is visible on the landing page; protected sections require login.
+document.querySelectorAll('header nav a[href="#converter"],header nav a[href="#membership"]').forEach(link => {
+  link.addEventListener("click", event => {
+    if (!localStorage.getItem("ahoyToken")) {
+      event.preventDefault();
+      $("username")?.focus();
+      $("authMessage").textContent = "Login atau register untuk melanjutkan.";
+    }
+  });
+});
 
 // INITIALIZE
 renderAccount();
