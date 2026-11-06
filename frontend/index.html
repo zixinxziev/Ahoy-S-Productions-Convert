@@ -88,6 +88,40 @@
  .target-speed-card input{font-size:24px;min-height:68px}
 }
 
+
+/* AHOY'S BLACK & LIQUID GOLD cinematic landing visual */
+body:not(.is-authenticated) .hero{
+  justify-content:space-evenly;gap:clamp(26px,5vw,90px);
+  background:radial-gradient(ellipse at 78% 55%,rgba(121,83,19,.14),transparent 42%),radial-gradient(ellipse at 18% 50%,rgba(150,112,35,.07),transparent 38%);
+}
+body:not(.is-authenticated) .landing-auth{order:0;margin-left:clamp(0px,3vw,42px)}
+body:not(.is-authenticated) .gold-figure{
+  order:1;position:relative;left:auto;top:auto;flex:0 1 560px;width:min(52vw,560px);height:min(76vh,650px);
+  padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;
+  overflow:visible;isolation:isolate;transform:none;animation:figureFloat 7s ease-in-out infinite;
+}
+.gold-person{position:absolute;z-index:3;inset:2% 8% 0;width:84%;height:98%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 22px 35px #000e) drop-shadow(0 0 18px rgba(190,142,45,.13));}
+.gold-aura{position:absolute;z-index:0;inset:14% 8% 4%;border-radius:50%;background:radial-gradient(ellipse,rgba(194,143,43,.20),rgba(100,69,20,.09) 38%,transparent 70%);filter:blur(26px);animation:auraPulse 4.5s ease-in-out infinite}
+.gold-orbit{position:absolute;z-index:2;left:1%;top:39%;width:98%;height:29%;border:2px solid transparent;border-radius:50%;pointer-events:none;transform:rotate(-22deg);}
+.gold-orbit:before{content:"";position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 9%,rgba(181,126,27,.08) 13%,#9b681c 18%,#ffe7a0 22%,#b57b20 27%,transparent 34% 55%,#e5b84e 61%,#fff0bd 64%,transparent 70% 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 1px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 1px));filter:drop-shadow(0 0 7px rgba(226,174,65,.9));}
+.orbit-back{z-index:1;top:30%;height:40%;transform:rotate(-28deg);animation:orbitSpin 11s linear infinite}
+.orbit-front{top:48%;height:24%;transform:rotate(-18deg);animation:orbitSpinReverse 8s linear infinite}
+.orbit-front:after{content:"";position:absolute;left:13%;top:8%;width:23%;height:3px;border-radius:100%;background:#fff0bd;box-shadow:0 0 8px 3px #d9a53e,0 0 24px 7px rgba(213,158,48,.5);transform:rotate(-12deg)}
+.gold-smoke{position:absolute;z-index:1;width:75%;height:24%;left:13%;border-radius:50%;border:15px solid transparent;border-top-color:rgba(164,117,38,.14);border-right-color:rgba(224,177,76,.13);filter:blur(9px);transform:rotate(-25deg);}
+.smoke-one{top:27%;animation:smokeDrift 9s ease-in-out infinite}.smoke-two{top:52%;left:8%;transform:rotate(18deg) scale(.82);animation:smokeDrift 12s ease-in-out infinite reverse}
+.gold-sparks{position:absolute;z-index:4;width:5px;height:5px;border-radius:50%;background:#ffe6a0;box-shadow:0 0 7px 2px #d9a43c,0 0 18px 5px rgba(204,146,35,.45);animation:sparkFloat 4s ease-in-out infinite}
+.sparks-one{left:18%;top:38%}.sparks-two{right:13%;top:55%;animation-delay:-1.2s}.sparks-three{left:30%;bottom:17%;width:3px;height:3px;animation-delay:-2.4s}.sparks-four{right:24%;top:24%;width:4px;height:4px;animation-delay:-.7s}
+@keyframes orbitSpin{to{transform:rotate(332deg)}}@keyframes orbitSpinReverse{to{transform:rotate(-378deg)}}
+@keyframes auraPulse{0%,100%{opacity:.55;transform:scale(.94)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes smokeDrift{0%,100%{opacity:.35;translate:-2% 0;scale:.96}50%{opacity:.8;translate:3% -8px;scale:1.04}}
+@keyframes sparkFloat{0%,100%{translate:0 8px;opacity:.35}50%{translate:10px -18px;opacity:1}}
+@keyframes figureFloat{0%,100%{translate:0 0}50%{translate:0 -7px}}
+.landing-auth .modal-card{background:linear-gradient(145deg,rgba(24,20,13,.97),rgba(7,7,7,.98));border-color:rgba(207,161,65,.48);box-shadow:0 24px 80px #000c,0 0 35px rgba(180,130,40,.10)}
+.landing-auth .tabs button.active,.landing-auth .gold-btn{background:linear-gradient(110deg,#9b6c20,#f1d58c 52%,#a87929);color:#100d07}
+@media(max-width:800px){body:not(.is-authenticated) .hero{flex-direction:column;gap:12px;padding-top:24px}body:not(.is-authenticated) .gold-figure{order:0;flex:0 0 auto;width:min(88vw,390px);height:min(48vh,390px);margin:0 auto -5px}body:not(.is-authenticated) .landing-auth{order:1;margin:0 auto;width:min(350px,calc(100vw - 36px))}.gold-person{inset:0 8% 0;height:100%}}
+@media(max-width:480px){body:not(.is-authenticated) .gold-figure{width:min(90vw,330px);height:310px}.gold-orbit{top:38%}}
+@media(prefers-reduced-motion:reduce){.gold-figure,.gold-orbit,.gold-aura,.gold-smoke,.gold-sparks{animation:none!important}}
+
 </style>
 <style>
 /* Automatic Roblox mode: speed and pitch are locked; Amplify stays editable. */
@@ -162,28 +196,114 @@ body:not(.is-authenticated) .ahoy-tablet{animation:ahoyTabletFloat 5s ease-in-ou
 }
 
 </style>
+<style>
+
+/* === AHOY'S CINEMATIC BLACK & LIQUID GOLD LANDING — screenshot-matched pass === */
+:root{--ahoy-gold:#d7ad55;--ahoy-champagne:#f4dfa0;--ahoy-ink:#050505}
+body:not(.is-authenticated){background:#050505;color:#f5f1e8;overflow-x:hidden}
+body:not(.is-authenticated)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+ radial-gradient(ellipse at 78% 46%,rgba(111,77,22,.22),transparent 38%),
+ radial-gradient(ellipse at 8% 65%,rgba(76,48,12,.14),transparent 36%),
+ radial-gradient(ellipse at 50% 110%,rgba(143,103,34,.10),transparent 48%),
+ linear-gradient(112deg,#050505 0%,#090806 54%,#050505 100%)}
+body:not(.is-authenticated) header{height:78px;min-height:78px;padding:10px clamp(24px,5.2vw,92px);background:rgba(5,5,5,.88);border-bottom:1px solid rgba(196,145,53,.26);box-shadow:0 1px 22px rgba(180,125,35,.07)}
+body:not(.is-authenticated) .brand{position:relative;padding-left:47px;color:#f1d48b;font-size:18px;letter-spacing:1.5px;line-height:1.1}
+body:not(.is-authenticated) .brand::before{content:"";position:absolute;left:0;top:0;width:34px;height:28px;background:linear-gradient(135deg,#fff7df 0 34%,transparent 35%),linear-gradient(135deg,transparent 0 37%,#d6aa50 38% 63%,transparent 64%);clip-path:polygon(0 100%,24% 0,43% 0,20% 100%,43% 100%,67% 0,86% 0,62% 100%,82% 100%,100% 0,100% 100%);filter:drop-shadow(0 0 5px rgba(227,184,91,.25))}
+body:not(.is-authenticated) .brand small{font-size:9px;letter-spacing:3.2px;color:#d4d0c7;margin-top:4px}
+body:not(.is-authenticated) header nav{gap:clamp(18px,2.6vw,42px)}
+body:not(.is-authenticated) header nav a{font-size:14px;color:#eee9df;letter-spacing:.1px}
+body:not(.is-authenticated) header nav button#langBtn{min-width:58px;padding:10px 14px;border:1px solid rgba(211,166,75,.62);border-radius:8px;color:#f3d88e;background:rgba(12,10,7,.55)}
+body:not(.is-authenticated) .hero{position:relative;isolation:isolate;min-height:calc(100svh - 78px);max-width:1600px;margin:0 auto;padding:36px clamp(28px,6vw,104px) 44px;display:grid;grid-template-columns:minmax(390px,490px) minmax(0,1fr);align-items:center;justify-content:initial;gap:clamp(48px,7vw,120px);text-align:left;overflow:hidden}
+body:not(.is-authenticated) .hero::before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(ellipse at 79% 50%,rgba(170,118,30,.16),transparent 42%),linear-gradient(90deg,rgba(0,0,0,.08),transparent 55%)}
+body:not(.is-authenticated) .landing-auth{grid-column:1;grid-row:1;order:0;margin:0;width:100%;max-width:480px;justify-self:start;align-self:center;z-index:5}
+.ahoy-auth-card{width:100%;padding:22px 27px 21px!important;border-radius:18px!important;border:1px solid rgba(222,177,91,.76)!important;background:linear-gradient(145deg,rgba(28,20,10,.91),rgba(9,8,7,.97) 56%,rgba(18,12,7,.96))!important;box-shadow:0 22px 75px rgba(0,0,0,.72),0 0 0 1px rgba(255,224,157,.08) inset,0 0 34px rgba(199,142,42,.13)!important;backdrop-filter:blur(18px);position:relative;overflow:hidden}
+.ahoy-auth-card::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(118deg,rgba(255,231,178,.07),transparent 24% 76%,rgba(194,143,55,.045));opacity:.8}
+.ahoy-auth-card>*{position:relative;z-index:1}
+.ahoy-auth-card .auth-tabs{display:flex;gap:11px;margin:0 0 17px;justify-content:stretch}
+.ahoy-auth-card .auth-tabs button{flex:1;min-height:48px;border:1px solid rgba(193,151,77,.22);border-radius:9px;background:rgba(24,19,14,.86);color:#bcb4a7;font-size:14px;font-weight:600;letter-spacing:.2px;transition:background .25s,border-color .25s,box-shadow .25s,color .25s}
+.ahoy-auth-card .auth-tabs button.active{background:linear-gradient(110deg,#94651f,#f2d58d 52%,#a77728)!important;color:#171108!important;border-color:#f0cf82!important;box-shadow:0 0 22px rgba(218,168,75,.2),inset 0 1px rgba(255,255,255,.35)!important}
+.tab-icon{font-size:16px;margin-right:8px}
+.auth-engine{height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 2px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:11px;letter-spacing:1.15px;color:#e9e3d8}
+.auth-engine>span,.auth-engine>b{display:flex;align-items:center;gap:8px}
+.auth-engine i{width:7px;height:7px;border-radius:50%;background:#e8bf65;box-shadow:0 0 10px #e8bf65;display:inline-block}
+.auth-engine b{font-size:10px;font-weight:700;color:#86d8a3;letter-spacing:.7px}.auth-engine b i{background:#62d58c;box-shadow:0 0 9px #62d58c;width:6px;height:6px}
+.auth-processing{display:flex;align-items:center;gap:13px;padding:14px 0 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+.auth-music-icon{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(145deg,#f4d99c,#c28e39);color:#1b1409;font-size:28px;box-shadow:0 4px 18px rgba(201,150,60,.18)}
+.auth-processing-copy{display:grid;gap:4px;min-width:0}.auth-processing-copy strong{font-size:14px;color:#f2eee7;font-weight:600}.auth-processing-copy small{font-size:11px;color:#aaa195}
+.auth-wave{margin-left:auto;height:30px;display:flex;align-items:center;gap:3px}.auth-wave i{width:3px;border-radius:4px;background:linear-gradient(#f6df9d,#a9772b);height:var(--h,12px);animation:authWave .9s ease-in-out infinite alternate}.auth-wave i:nth-child(1),.auth-wave i:nth-child(7){--h:8px}.auth-wave i:nth-child(2),.auth-wave i:nth-child(6){--h:16px;animation-delay:.17s}.auth-wave i:nth-child(3),.auth-wave i:nth-child(5){--h:24px;animation-delay:.3s}.auth-wave i:nth-child(4){--h:13px;animation-delay:.08s}
+.auth-progress{padding:13px 0 9px}.auth-progress-label{display:flex;align-items:center;justify-content:space-between;color:#b9b0a1;font-size:10px;letter-spacing:.9px}.auth-progress-label b{font-size:10px;color:#e4c77f;letter-spacing:.5px}.auth-progress-track{height:5px;margin-top:8px;border-radius:8px;background:rgba(255,255,255,.10);overflow:hidden}.auth-progress-track i{display:block;width:68%;height:100%;border-radius:8px;background:linear-gradient(90deg,#98651d,#f8e4a6,#b17c29);box-shadow:0 0 12px rgba(226,177,81,.55);animation:authProgress 5s ease-in-out infinite alternate}
+.auth-speed{display:flex;align-items:center;justify-content:space-between;padding:5px 1px 12px;border-bottom:1px solid rgba(255,255,255,.08);color:#aaa195;font-size:10px;letter-spacing:.8px}.auth-speed strong{font-size:24px;color:#f1d58e;letter-spacing:-.5px}.auth-speed strong span{font-size:13px;margin-left:2px}
+.auth-status-row{display:flex;align-items:center;gap:11px;margin-top:9px;padding:10px 12px;border:1px solid rgba(102,179,128,.16);border-radius:9px;background:linear-gradient(90deg,rgba(49,103,65,.13),rgba(15,20,14,.3))}.auth-status-icon{width:25px;height:25px;display:grid;place-items:center;border:1px solid #37c477;border-radius:50%;color:#6ee19b;font-size:15px;flex:0 0 auto}.auth-status-row>span:nth-child(2){display:grid;gap:3px}.auth-status-row small{font-size:8px;color:#aaa99b;letter-spacing:1px}.auth-status-row b{font-size:10px;color:#a9e6bd;letter-spacing:.55px}.auth-status-row em{margin-left:auto;color:#8fdbab;font-size:8px;font-style:normal;letter-spacing:.8px}.auth-status-row.upload{border-color:rgba(192,151,76,.16);background:linear-gradient(90deg,rgba(120,82,25,.13),rgba(20,16,10,.25))}.auth-status-row.upload .auth-status-icon{border-color:#c39a4e;color:#e5c37b}.auth-status-row.upload b,.auth-status-row.upload em{color:#ddc17f}
+.ahoy-auth-card .auth-form{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}.ahoy-auth-card .auth-form input{width:100%;min-width:0;min-height:42px;padding:10px 12px;border-radius:7px;background:rgba(5,5,5,.82);color:#f5f0e7;border:1px solid rgba(199,165,105,.24);font:inherit;font-size:12px;box-sizing:border-box}.ahoy-auth-card .auth-form input:focus{outline:none;border-color:#d8b56e;box-shadow:0 0 0 3px rgba(211,167,83,.10)}
+.ahoy-auth-card .auth-form .gold-btn{grid-column:1/-1;width:100%;min-height:49px;margin-top:2px;border:0;border-radius:8px;background:linear-gradient(105deg,#a9782c,#f3d994 52%,#c08b35);color:#1a1308;font-size:15px;font-weight:800;letter-spacing:.3px;box-shadow:0 8px 25px rgba(196,143,47,.2),inset 0 1px rgba(255,255,255,.4);transition:filter .25s,transform .25s,box-shadow .25s}.ahoy-auth-card .auth-form .gold-btn:hover{filter:brightness(1.1);box-shadow:0 10px 30px rgba(218,167,72,.28)}.ahoy-auth-card .auth-form .gold-btn span{margin-left:8px;font-size:18px}
+.ahoy-auth-card #authMessage{min-height:14px;margin:5px 0 0;color:#e5c987;font-size:11px;text-align:center}.ahoy-auth-card .auth-footnote{display:block;margin:5px auto 0!important;max-width:340px;color:#aaa195!important;font-size:10px!important;line-height:1.55;text-align:center;letter-spacing:.05px}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+body:not(.is-authenticated) .gold-figure{grid-column:2;grid-row:1;order:1;justify-self:stretch;align-self:center;position:relative;left:auto;top:auto;flex:initial;width:100%;max-width:760px;height:min(78vh,760px);min-height:540px;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;overflow:visible;isolation:isolate;transform:none;animation:figureFloat 8s ease-in-out infinite}
+.gold-person{position:absolute;z-index:3;inset:0 8% 0;width:84%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 26px 40px rgba(0,0,0,.88)) drop-shadow(0 0 20px rgba(195,147,57,.2));}
+.gold-aura{inset:12% 5% 5%;background:radial-gradient(ellipse,rgba(184,133,42,.25),rgba(103,72,22,.13) 38%,rgba(30,23,12,.08) 55%,transparent 73%);filter:blur(38px)}
+.gold-orbit{left:-4%;width:108%;border-width:2px;filter:drop-shadow(0 0 10px rgba(214,163,66,.55))}.gold-orbit:before{background:conic-gradient(from 15deg,transparent 0 7%,rgba(169,119,35,.04) 12%,#9d6b20 17%,#fff0bd 21%,#d4a34a 25%,transparent 32% 48%,#9d6d27 54%,#fff2c6 59%,#d3a04a 64%,transparent 71% 100%);filter:drop-shadow(0 0 8px rgba(226,174,65,.85))}.orbit-back{top:31%;height:38%;animation:orbitSpin 17s linear infinite}.orbit-front{top:49%;height:24%;animation:orbitSpinReverse 13s linear infinite}.gold-orbit.orbit-back{transform:rotate(-27deg) scaleY(.95)}
+.gold-smoke{width:100%;height:28%;left:0;border-width:22px;border-top-color:rgba(166,119,39,.18);border-right-color:rgba(238,195,104,.2);filter:blur(15px)}.smoke-one{top:25%;animation:smokeDrift 11s ease-in-out infinite}.smoke-two{top:52%;left:-4%;transform:rotate(19deg) scale(.9);animation:smokeDrift 14s ease-in-out infinite reverse}
+.gold-figure::before,.gold-figure::after{content:"";position:absolute;z-index:1;left:-4%;width:108%;height:20%;border-radius:50%;pointer-events:none;filter:blur(10px);border:12px solid transparent;border-top-color:rgba(218,170,75,.2);border-right-color:rgba(248,222,160,.25);transform:rotate(-18deg)}.gold-figure::before{top:37%;animation:smokeDrift 8s ease-in-out infinite}.gold-figure::after{top:55%;transform:rotate(13deg) scale(.9);border-top-color:rgba(125,89,31,.22);border-left-color:rgba(233,190,100,.16);animation:smokeDrift 12s ease-in-out infinite reverse}
+.gold-sparks{background:#fff0bf;box-shadow:0 0 8px 3px #d9a43c,0 0 22px 7px rgba(204,146,35,.55)}
+@keyframes authWave{to{transform:scaleY(.42);opacity:.55}}@keyframes authProgress{from{width:34%}to{width:91%}}
+@media(max-width:1100px){body:not(.is-authenticated) .hero{gap:34px;padding-left:28px;padding-right:28px;grid-template-columns:minmax(340px,440px) minmax(0,1fr)}body:not(.is-authenticated) .gold-figure{min-height:480px;height:66vh}.ahoy-auth-card{padding:19px 20px!important}}
+@media(max-width:800px){body:not(.is-authenticated) .hero{min-height:auto;grid-template-columns:1fr;gap:4px;padding:24px 18px 54px}body:not(.is-authenticated) .gold-figure{grid-column:1;grid-row:1;width:min(100%,520px);height:min(54vh,430px);min-height:300px;justify-self:center;order:0;margin:0 auto -10px}body:not(.is-authenticated) .landing-auth{grid-column:1;grid-row:2;width:min(100%,460px);justify-self:center;order:1;margin:0 auto}.gold-person{inset:0 9% 0;width:82%}.gold-orbit{left:0;width:100%}}
+@media(max-width:520px){body:not(.is-authenticated) header{padding:10px 16px;min-height:68px;height:68px}body:not(.is-authenticated) .brand{font-size:15px;padding-left:40px}body:not(.is-authenticated) .brand::before{width:30px;height:24px}body:not(.is-authenticated) header nav{gap:12px}body:not(.is-authenticated) header nav a{font-size:11px}body:not(.is-authenticated) header nav button#langBtn{min-width:42px;padding:8px 10px;font-size:11px}body:not(.is-authenticated) .hero{padding:12px 14px 38px}.ahoy-auth-card{padding:17px 16px!important;border-radius:14px!important}.ahoy-auth-card .auth-tabs button{min-height:43px;font-size:12px}.auth-processing{padding:11px 0}.auth-music-icon{width:41px;height:41px;flex-basis:41px}.auth-processing-copy strong{font-size:12px}.auth-processing-copy small{font-size:10px}.auth-status-row{padding:8px 9px}.ahoy-auth-card .auth-form{grid-template-columns:1fr;gap:8px}.ahoy-auth-card .auth-form .gold-btn{grid-column:1}}
+@media(prefers-reduced-motion:reduce){.auth-wave i,.auth-progress-track i,.gold-figure,.gold-orbit,.gold-aura,.gold-smoke,.gold-sparks,.gold-figure::before,.gold-figure::after{animation:none!important}}
+
+</style>
 </head>
 <body>
 <div id="intro" class="intro"><div class="intro-mark">AHOY'S <span>PRODUCTIONS</span></div><div class="intro-line"></div><p>AUDIO CONVERTER</p><button id="skipIntro">SKIP INTRO</button></div>
 <header><a class="brand" href="#">AHOY'S <small>PRODUCTIONS</small></a><nav><a href="#converter" data-i18n="navConverter">Converter</a><a href="#membership" data-i18n="navMembership">Membership</a><button id="langBtn">EN</button><button id="accountBtn" class="outline">Login / Register</button></nav></header>
 <main>
 <section class="hero">
-  <div class="ahoy-tablet" aria-label="Animated audio conversion status demo">
-    <div class="tablet-top"><span class="tablet-brand"><i></i> AHOY'S ENGINE</span><span class="tablet-live"><b></b> LIVE</span></div>
-    <div class="tablet-track"><div class="tablet-cover"><span>♪</span></div><div class="tablet-track-info"><strong>Audio Processing</strong><small>premium conversion pipeline</small></div><span class="tablet-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
-    <div class="tablet-progress-head"><span>CONVERTING AUDIO</span><strong class="tablet-percent">0%</strong></div>
-    <div class="tablet-progress"><i></i></div>
-    <div class="tablet-speed-row"><span>PROCESSING SPEED</span><strong>2.3<span>x</span></strong></div>
-    <div class="tablet-status"><span class="tablet-status-icon">✓</span><span><small>MODERATION</small><strong>ACCEPTED</strong></span><em>VERIFIED</em></div>
-    <div class="tablet-status tablet-upload"><span class="tablet-status-icon">↑</span><span><small>UPLOAD STATUS</small><strong>PUSHED SUCCESSFULLY</strong></span><em>DONE</em></div>
-    <div class="tablet-foot"><span>AHOY AUDIO PIPELINE</span><span class="tablet-foot-dots">● ● ●</span></div>
+  <div class="ahoy-tablet gold-figure" aria-label="AHOY'S golden energy visual">
+    <div class="gold-aura"></div>
+    <div class="gold-orbit orbit-back"></div>
+    <div class="gold-smoke smoke-one"></div><div class="gold-smoke smoke-two"></div>
+    <img class="gold-person" src="./assets/ahoy-gold-suit.png" alt="Silhouette of a man in a black suit">
+    <div class="gold-orbit orbit-front"></div>
+    <span class="gold-sparks sparks-one"></span><span class="gold-sparks sparks-two"></span>
+    <span class="gold-sparks sparks-three"></span><span class="gold-sparks sparks-four"></span>
   </div>
   <div class="landing-copy">
     <div class="eyebrow">PREMIUM AUDIO PROCESSING</div>
     <h1>AHOY'S <em>AUDIO</em><br>CONVERTER</h1>
     <p>Masuk untuk menikmati pengalaman audio converter AHOY'S PRODUCTIONS.</p>
   </div>
-  <div id="authModal" class="modal landing-auth"><div class="modal-card"><button class="close" id="closeModal">×</button><h2>Account</h2><div class="tabs"><button id="loginTab">Login</button><button id="registerTab">Register</button></div><form id="authForm"><input id="username" placeholder="Username" required minlength="3"><input id="password" type="password" placeholder="Password" required minlength="8"><button class="gold-btn" type="submit">Continue</button></form><p id="authMessage"></p><small>Registration starts as Free. Contact the owner with your username for permanent Unlimited activation.</small></div></div></section>
+  <div id="authModal" class="modal landing-auth" aria-label="Account login and registration">
+    <div class="modal-card ahoy-auth-card">
+      <button class="close" id="closeModal" aria-label="Close">×</button>
+      <div class="auth-tabs tabs" role="tablist" aria-label="Account access">
+        <button id="loginTab" class="active" type="button" role="tab" aria-selected="true"><span class="tab-icon">♙</span> Login</button>
+        <button id="registerTab" type="button" role="tab" aria-selected="false"><span class="tab-icon">♧</span> Register</button>
+      </div>
+      <div class="auth-engine"><span><i></i> AHOY'S ENGINE</span><b><i></i> LIVE</b></div>
+      <div class="auth-processing">
+        <div class="auth-music-icon">♫</div>
+        <div class="auth-processing-copy"><strong>Audio Processing</strong><small>converting audio spectrum</small></div>
+        <div class="auth-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="auth-progress">
+        <div class="auth-progress-label"><span>CONVERTING AUDIO</span><b>READY</b></div>
+        <div class="auth-progress-track"><i></i></div>
+      </div>
+      <div class="auth-speed"><span>PROCESSING SPEED</span><strong>2.3<span>x</span></strong></div>
+      <div class="auth-status-row"><span class="auth-status-icon">✓</span><span><small>ACCOUNT STATUS</small><b>SECURE ACCESS</b></span><em>READY</em></div>
+      <div class="auth-status-row upload"><span class="auth-status-icon">↑</span><span><small>UPLOAD STATUS</small><b>ENGINE STANDBY</b></span><em>WAITING</em></div>
+      <h2 class="sr-only">Account</h2>
+      <form id="authForm" class="auth-form">
+        <label class="sr-only" for="username">Username</label>
+        <input id="username" placeholder="Username" autocomplete="username" required minlength="3">
+        <label class="sr-only" for="password">Password</label>
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" required minlength="8">
+        <button class="gold-btn" type="submit">Continue <span aria-hidden="true">→</span></button>
+      </form>
+      <p id="authMessage" role="status" aria-live="polite"></p>
+      <small class="auth-footnote">Registration starts as Free. Contact the owner with your username for permanent Unlimited activation.</small>
+    </div>
+  </div></section>
 <section id="converter" class="panel">
 <div class="section-head"><div><div class="eyebrow">01 / AUDIO ENGINE</div><h2 data-i18n="converterTitle">Audio Converter</h2></div><span class="pill">BULK READY</span></div>
 <div id="dropzone" class="dropzone"><input id="files" type="file" accept="audio/*" multiple hidden><div class="upload-icon">＋</div><b data-i18n="dropTitle">Drop audio files here</b><p data-i18n="dropSub">atau klik untuk memilih beberapa file sekaligus</p><button id="browse" class="outline">Browse Files</button><div id="fileList" class="file-list"></div></div>
