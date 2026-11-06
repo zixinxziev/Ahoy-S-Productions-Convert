@@ -486,6 +486,7 @@ function attachRobloxUploadControl(parent, file) {
     if (result.ok) {
       status.textContent = `Uploaded · Audio ID: ${result.assetId}`;
       status.title = `Creator: ${result.username || "Roblox account"}`;
+      window.dispatchEvent(new Event("ahoy:roblox-uploaded"));
     } else {
       status.textContent = result.error;
     }
@@ -1128,3 +1129,175 @@ document.querySelectorAll('header nav a[href="#converter"],header nav a[href="#m
 // INITIALIZE
 renderAccount();
 initAhoyCursor();
+
+
+// ===============================
+// AHOY WORKSPACES: SPLIT + ROBLOX UPLOAD HISTORY
+// Existing converter/split/upload logic is preserved; this only adds navigation and history UI.
+// ===============================
+function initAhoyWorkspaces() {
+  if (document.getElementById("ahoyHistoryWorkspace")) return;
+
+  const nav = document.querySelector("header nav");
+  const membership = $("membership");
+  const converter = $("converter");
+  const splitPanel = $("ahoyAutoSplit");
+  if (!nav || !membership || !converter) return;
+
+  // Add dedicated navigation entries.
+  const addNav = (id, label, href) => {
+    if (!document.getElementById(id)) {
+      const a = document.createElement("a");
+      a.id = id; a.href = href; a.textContent = label;
+      nav.insertBefore(a, nav.querySelector("#langBtn") || nav.lastElementChild);
+    }
+  };
+  addNav("ahoySplitNav", "Split", "#ahoySplitWorkspace");
+  addNav("ahoyHistoryNav", "Roblox History", "#ahoyHistoryWorkspace");
+
+  // Move the existing Auto Split panel intact into its own workspace.
+  const splitWorkspace = document.createElement("section");
+  splitWorkspace.id = "ahoySplitWorkspace";
+  splitWorkspace.className = "panel ahoy-workspace";
+  splitWorkspace.innerHTML = '<div class="section-head"><div><div class="eyebrow">02 / AUDIO WORKSPACE</div><h2>Audio Split</h2></div><span class="pill">AUTO SPLIT</span></div>';
+  if (splitPanel) splitWorkspace.appendChild(splitPanel);
+  converter.insertAdjacentElement("afterend", splitWorkspace);
+
+  // Dedicated upload history table.
+  const historyWorkspace = document.createElement("section");
+  historyWorkspace.id = "ahoyHistoryWorkspace";
+  historyWorkspace.className = "panel ahoy-workspace";
+  historyWorkspace.innerHTML = `
+    <div class="section-head">
+      <div><div class="eyebrow">03 / ROBLOX CREATOR HUB</div><h2>Roblox Upload History</h2></div>
+      <button type="button" id="ahoyHistoryRefresh" class="outline">REFRESH</button>
+    </div>
+    <p class="ahoy-history-subtitle">Riwayat upload audio ke Roblox dan status moderasi terbaru dari Creator Hub.</p>
+    <div class="ahoy-history-summary" id="ahoyHistorySummary">
+      <div><strong id="ahoyHistoryTotal">—</strong><span>Total Upload</span></div>
+      <div><strong id="ahoyHistoryPending">—</strong><span>Pending</span></div>
+      <div><strong id="ahoyHistoryApproved">—</strong><span>Approved</span></div>
+      <div><strong id="ahoyHistoryRejected">—</strong><span>Rejected</span></div>
+    </div>
+    <div class="ahoy-history-table-wrap">
+      <table class="ahoy-history-table">
+        <thead><tr><th>Audio</th><th>Upload Date</th><th>Asset ID</th><th>Status</th><th>Creator</th></tr></thead>
+        <tbody id="ahoyHistoryRows"><tr><td colspan="5" class="ahoy-history-empty">Login untuk melihat riwayat upload Roblox.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="ahoy-history-foot" id="ahoyHistoryFoot" aria-live="polite">Status pending diperbarui otomatis saat halaman riwayat dibuka.</div>
+  `;
+  splitWorkspace.insertAdjacentElement("afterend", historyWorkspace);
+
+  const styles = document.createElement("style");
+  styles.id = "ahoyWorkspaceStyles";
+  styles.textContent = `
+    .ahoy-workspace{display:none;max-width:1500px;margin:28px auto}
+    body.ahoy-view-split #converter,body.ahoy-view-split #ahoyHistoryWorkspace,body.ahoy-view-split #membership{display:none!important}
+    body.ahoy-view-split #ahoySplitWorkspace{display:block!important}
+    body.ahoy-view-history #converter,body.ahoy-view-history #ahoySplitWorkspace,body.ahoy-view-history #membership{display:none!important}
+    body.ahoy-view-history #ahoyHistoryWorkspace{display:block!important}
+    body.ahoy-view-converter #ahoySplitWorkspace,body.ahoy-view-converter #ahoyHistoryWorkspace{display:none!important}
+    .ahoy-history-subtitle{color:#aaa;font-size:13px;margin:0 0 18px}
+    .ahoy-history-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
+    .ahoy-history-summary>div{padding:15px;border:1px solid rgba(180,160,220,.16);border-radius:12px;background:linear-gradient(145deg,#171522,#0d0c13);display:grid;gap:5px}
+    .ahoy-history-summary strong{font-size:22px;color:#eee}
+    .ahoy-history-summary span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#999}
+    .ahoy-history-table-wrap{width:100%;overflow-x:auto;border:1px solid rgba(180,160,220,.16);border-radius:12px}
+    .ahoy-history-table{width:100%;border-collapse:collapse;min-width:680px;background:#0e0d13}
+    .ahoy-history-table th,.ahoy-history-table td{padding:13px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07);font-size:12px}
+    .ahoy-history-table th{color:#bdb2d8;font-size:10px;letter-spacing:.09em;text-transform:uppercase;background:#151320}
+    .ahoy-history-table td{color:#ddd}
+    .ahoy-history-table tr:last-child td{border-bottom:0}
+    .ahoy-history-empty{text-align:center!important;color:#999!important;padding:28px!important}
+    .ahoy-history-status{display:inline-flex;padding:5px 9px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+    .ahoy-history-status.pending{color:#f2cf79;background:#8d681c24;border:1px solid #a9843c55}
+    .ahoy-history-status.approved{color:#8ce0ad;background:#1d8a4b20;border:1px solid #4ab87955}
+    .ahoy-history-status.rejected{color:#ff9b9b;background:#a52c2c20;border:1px solid #d45c5c55}
+    .ahoy-history-table a{color:#c8b4f0;text-decoration:none}
+    .ahoy-history-table a:hover{text-decoration:underline}
+    .ahoy-history-foot{font-size:11px;color:#888;margin-top:12px}
+    @media(max-width:650px){.ahoy-history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.ahoy-history-summary>div{padding:12px}}
+  `;
+  document.head.appendChild(styles);
+
+  const showView = view => {
+    document.body.classList.remove("ahoy-view-converter","ahoy-view-split","ahoy-view-history");
+    document.body.classList.add("ahoy-view-" + view);
+    if (view === "history") loadAhoyRobloxHistory();
+  };
+  $("ahoySplitNav").addEventListener("click", () => showView("split"));
+  $("ahoyHistoryNav").addEventListener("click", () => showView("history"));
+  const converterNav = nav.querySelector('a[href="#converter"]');
+  converterNav?.addEventListener("click", () => showView("converter"));
+  $("ahoyHistoryRefresh").addEventListener("click", loadAhoyRobloxHistory);
+  window.addEventListener("hashchange", () => {
+    if (location.hash === "#ahoySplitWorkspace") showView("split");
+    else if (location.hash === "#ahoyHistoryWorkspace") showView("history");
+    else if (location.hash === "#converter") showView("converter");
+  });
+  if (location.hash === "#ahoyHistoryWorkspace") showView("history");
+  else if (location.hash === "#ahoySplitWorkspace") showView("split");
+  else showView("converter");
+
+  // Keep the history current while the user is viewing its dedicated tab.
+  if (!window.ahoyHistoryRefreshTimer) {
+    window.ahoyHistoryRefreshTimer = setInterval(() => {
+      if (document.body.classList.contains("ahoy-view-history")) loadAhoyRobloxHistory(true);
+    }, 25000);
+  }
+}
+
+function loadAhoyRobloxHistory(silent = false) {
+  const rows = $("ahoyHistoryRows");
+  if (!rows || window.ahoyHistoryLoading) return;
+  if (!localStorage.getItem("ahoyToken")) {
+    rows.innerHTML = '<tr><td colspan="5" class="ahoy-history-empty">Login ke akun AHOY untuk melihat riwayat upload.</td></tr>';
+    $("ahoyHistoryFoot").textContent = "Riwayat upload hanya terlihat oleh pemilik akun.";
+    return;
+  }
+  window.ahoyHistoryLoading = true;
+  if (!silent) rows.innerHTML = '<tr><td colspan="5" class="ahoy-history-empty">Memuat riwayat upload Roblox…</td></tr>';
+  robloxRequest("/api/roblox/history").then(data => {
+    const history = Array.isArray(data.history) ? data.history : [];
+    const counts = {pending:0,approved:0,rejected:0};
+    history.forEach(item => { if (counts[item.status] !== undefined) counts[item.status]++; });
+    $("ahoyHistoryTotal").textContent = history.length;
+    $("ahoyHistoryPending").textContent = counts.pending;
+    $("ahoyHistoryApproved").textContent = counts.approved;
+    $("ahoyHistoryRejected").textContent = counts.rejected;
+    if (!history.length) {
+      rows.innerHTML = '<tr><td colspan="5" class="ahoy-history-empty">Belum ada upload ke Roblox.</td></tr>';
+    } else {
+      rows.replaceChildren();
+      history.forEach(item => {
+        const tr = document.createElement("tr");
+        const name = document.createElement("td"); name.textContent = item.display_name || "Untitled audio";
+        const date = document.createElement("td");
+        const parsed = item.created_at ? new Date(item.created_at) : null;
+        date.textContent = parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleString() : "—";
+        const asset = document.createElement("td");
+        const link = document.createElement("a");
+        link.href = "https://www.roblox.com/library/" + encodeURIComponent(item.asset_id);
+        link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = item.asset_id || "—";
+        asset.appendChild(link);
+        const status = document.createElement("td");
+        const badge = document.createElement("span");
+        const state = ["approved","pending","rejected"].includes(item.status) ? item.status : "pending";
+        badge.className = "ahoy-history-status " + state; badge.textContent = state;
+        status.appendChild(badge);
+        const creator = document.createElement("td"); creator.textContent = item.roblox_username ? "@" + item.roblox_username : "—";
+        tr.append(name,date,asset,status,creator); rows.appendChild(tr);
+      });
+    }
+    $("ahoyHistoryFoot").textContent = "Menampilkan maksimal 50 upload terbaru. Pending akan dicek ulang dari Roblox saat refresh.";
+  }).catch(error => {
+    if (!silent) rows.innerHTML = '<tr><td colspan="5" class="ahoy-history-empty"></td></tr>';
+    const cell = rows.querySelector(".ahoy-history-empty");
+    if (cell) cell.textContent = error.message || "Gagal memuat riwayat.";
+    $("ahoyHistoryFoot").textContent = "Periksa koneksi akun Roblox dan backend.";
+  }).finally(() => { window.ahoyHistoryLoading = false; });
+}
+
+document.addEventListener("DOMContentLoaded", initAhoyWorkspaces);
+window.addEventListener("ahoy:roblox-uploaded", () => loadAhoyRobloxHistory());
