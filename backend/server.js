@@ -1128,6 +1128,20 @@ app.post("/api/roblox/upload", auth, requiredAuth, async (req, res) => {
     if (!/^\d+$/.test(assetId)) {
       return res.status(504).json({ error: "Roblox menerima upload tetapi belum mengembalikan Audio ID. Cek Creator Hub beberapa saat lagi." });
     }
+    const rawModeration = String(asset.moderationResult?.moderationState || "MODERATION_STATE_REVIEWING");
+    const moderationStatus = rawModeration.includes("APPROVED") ? "approved"
+      : rawModeration.includes("REJECTED") ? "rejected" : "pending";
+    const { error: historyError } = await supabase.from("roblox_upload_history").insert({
+      username: user.username,
+      roblox_user_id: String(connection.roblox_user_id),
+      roblox_username: connection.roblox_username,
+      asset_id: assetId,
+      display_name: requestedName,
+      status: moderationStatus,
+      moderation_state: rawModeration,
+      creator_url: "https://create.roblox.com/dashboard/creations"
+    });
+    if (historyError) console.error("ROBLOX HISTORY SAVE ERROR:", historyError);
     return res.json({
       success: true,
       assetId,
@@ -1139,6 +1153,55 @@ app.post("/api/roblox/upload", auth, requiredAuth, async (req, res) => {
     console.error("ROBLOX AUDIO UPLOAD ERROR:", error);
     const message = error.message || "Roblox audio upload failed";
     return res.status(message.includes("Hubungkan akun") || message.includes("Sesi Roblox") ? 400 : 500).json({ error: message });
+  }
+});
+
+// ===============================
+// ROBLOX UPLOAD HISTORY + LIVE MODERATION STATUS
+// ===============================
+function normalizeRobloxModeration(value) {
+  const state = String(value || "").toUpperCase();
+  if (state.includes("APPROVED")) return "approved";
+  if (state.includes("REJECTED")) return "rejected";
+  return "pending";
+}
+
+app.get("/api/roblox/history", auth, requiredAuth, async (req, res) => {
+  try {
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Ahoy member account not found" });
+    const { data, error } = await supabase.from("roblox_upload_history")
+      .select("id,asset_id,display_name,status,moderation_state,roblox_username,created_at,updated_at,creator_url")
+      .eq("username", user.username).order("created_at", { ascending: false }).limit(50);
+    if (error) throw error;
+
+    const pending = (data || []).filter(item => item.status === "pending").slice(0, 15);
+    if (pending.length) {
+      try {
+        const { token } = await getValidRobloxAccessToken(user.username);
+        for (const item of pending) {
+          try {
+            const response = await fetch(`https://apis.roblox.com/assets/v1/assets/${encodeURIComponent(item.asset_id)}`, {
+              headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12000)
+            });
+            if (!response.ok) continue;
+            const assetData = await response.json().catch(() => ({}));
+            const rawState = String(assetData.moderationResult?.moderationState || item.moderation_state || "");
+            const nextStatus = normalizeRobloxModeration(rawState);
+            if (nextStatus !== item.status || rawState !== item.moderation_state) {
+              await supabase.from("roblox_upload_history").update({
+                status: nextStatus, moderation_state: rawState || null, updated_at: new Date().toISOString()
+              }).eq("id", item.id).eq("username", user.username);
+              item.status = nextStatus; item.moderation_state = rawState; item.updated_at = new Date().toISOString();
+            }
+          } catch (refreshError) { console.warn("ROBLOX MODERATION REFRESH:", refreshError.message); }
+        }
+      } catch (tokenError) { console.warn("ROBLOX HISTORY TOKEN:", tokenError.message); }
+    }
+    return res.json({ history: data || [] });
+  } catch (error) {
+    console.error("ROBLOX HISTORY ERROR:", error);
+    return res.status(500).json({ error: "Gagal memuat riwayat upload Roblox." });
   }
 });
 
