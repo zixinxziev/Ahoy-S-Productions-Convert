@@ -1016,67 +1016,133 @@ button:disabled,
 }
 
 
-/* AHOY landing gate: retain the site's existing black / gold / silver-blue palette. */
+/* AHOY LANDING GATE — NO CHARACTER / NO IMAGE */
+
 body:not(.is-authenticated) #converter,
 body:not(.is-authenticated) #membership,
-body:not(.is-authenticated) footer {display:none!important}
+body:not(.is-authenticated) footer {
+  display:none!important;
+}
+
 body.is-authenticated .landing-auth,
-body.is-authenticated .landing-copy,
-body.is-authenticated .ahoy-tablet {display:none!important}
-body.is-authenticated .hero{display:none!important}
-body:not(.is-authenticated) .hero{
-  min-height:calc(100vh - 76px);padding:42px clamp(18px,5vw,76px);
-  display:flex;align-items:center;justify-content:center;gap:clamp(28px,5vw,76px);
-  text-align:left;overflow:hidden;
+body.is-authenticated .landing-copy {
+  display:none!important;
 }
-body:not(.is-authenticated) .ahoy-tablet{
-  position:relative;left:auto;top:auto;flex:0 1 278px;width:278px;
-  transform:perspective(900px) rotateY(8deg) rotateX(2deg);
-  margin:0;opacity:1;
+
+body.is-authenticated .hero {
+  display:none!important;
 }
-.landing-copy{display:none}
-.landing-auth{
-  display:flex!important;position:relative;inset:auto;z-index:2;
-  width:min(350px,calc(100vw - 36px));padding:0;background:transparent;
-  align-items:center;justify-content:center;flex:0 0 auto;
+
+body:not(.is-authenticated) .hero {
+  min-height:calc(100vh - 76px);
+  padding:42px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  overflow:hidden;
 }
-.landing-auth .modal-card{
-  width:100%;padding:24px 23px;border-radius:10px;
+
+.landing-copy {
+  display:none!important;
+}
+
+.landing-auth {
+  display:flex!important;
+  position:relative;
+  inset:auto;
+  z-index:2;
+  width:min(350px,calc(100vw - 36px));
+  padding:0;
+  background:transparent;
+  align-items:center;
+  justify-content:center;
+}
+
+.landing-auth .modal-card {
+  width:100%;
+  padding:24px 23px;
+  border-radius:10px;
   background:linear-gradient(145deg,#17130e,#0b0b0b);
   border:1px solid rgba(212,175,55,.38);
   box-shadow:0 22px 70px #0009,0 0 24px rgba(130,157,177,.08);
 }
-.landing-auth .close{display:none}
-.landing-auth .modal-card h2{margin:0;text-align:center;font-size:23px;letter-spacing:1.5px}
-.landing-auth .modal-card>small{display:block;margin-top:14px;text-align:center}
-.landing-auth .tabs{justify-content:center}
-.landing-auth .tabs button{flex:1}
-.landing-auth #authMessage{min-height:16px;text-align:center}
-.landing-auth input{
-  min-height:44px;padding:11px 13px;border-radius:6px;
-  background:#080808;color:#f4f0e8;border:1px solid #39332a;
+
+.landing-auth .close {
+  display:none;
 }
-.landing-auth input:focus{outline:none;border-color:#9f895b;box-shadow:0 0 0 3px rgba(177,147,83,.12)}
-.landing-auth form button{min-height:44px}
-body:not(.is-authenticated) #accountBtn{display:none!important}
-body:not(.is-authenticated) header nav a{display:inline-flex}
-body:not(.is-authenticated) header nav a{opacity:.85}
-body:not(.is-authenticated) header nav a:hover{opacity:1}
-body:not(.is-authenticated) .ahoy-tablet{animation:ahoyTabletFloat 5s ease-in-out infinite,ahoyTabletIn .9s .3s both}
-@media(max-width:800px){
- body:not(.is-authenticated) .hero{
-   min-height:calc(100vh - 105px);padding:34px 18px 50px;
-   flex-direction:column;gap:25px;
- }
- body:not(.is-authenticated) .ahoy-tablet{width:min(245px,72vw);flex:0 0 auto}
- .landing-auth{width:min(350px,calc(100vw - 36px))}
- body:not(.is-authenticated) header nav a{display:inline-flex}
+
+.landing-auth .modal-card h2 {
+  margin:0;
+  text-align:center;
+  font-size:23px;
+  letter-spacing:1.5px;
 }
-@media(max-width:480px){
- .landing-auth .modal-card{padding:20px 18px}
- body:not(.is-authenticated) .hero{gap:20px}
- body:not(.is-authenticated) .ahoy-tablet{width:min(220px,68vw);padding:11px}
+
+.landing-auth .modal-card>small {
+  display:block;
+  margin-top:14px;
+  text-align:center;
 }
-@media(prefers-reduced-motion:reduce){
- body:not(.is-authenticated) .ahoy-tablet{animation:none!important}
+
+.landing-auth .tabs {
+  justify-content:center;
+}
+
+.landing-auth .tabs button {
+  flex:1;
+}
+
+.landing-auth #authMessage {
+  min-height:16px;
+  text-align:center;
+}
+
+.landing-auth input {
+  min-height:44px;
+  padding:11px 13px;
+  border-radius:6px;
+  background:#080808;
+  color:#f4f0e8;
+  border:1px solid #39332a;
+}
+
+.landing-auth input:focus {
+  outline:none;
+  border-color:#9f895b;
+  box-shadow:0 0 0 3px rgba(177,147,83,.12);
+}
+
+.landing-auth form button {
+  min-height:44px;
+}
+
+body:not(.is-authenticated) #accountBtn {
+  display:none!important;
+}
+
+body:not(.is-authenticated) header nav a {
+  display:inline-flex;
+  opacity:.85;
+}
+
+body:not(.is-authenticated) header nav a:hover {
+  opacity:1;
+}
+
+@media(max-width:800px) {
+  body:not(.is-authenticated) .hero {
+    min-height:calc(100vh - 105px);
+    padding:34px 18px 50px;
+  }
+
+  .landing-auth {
+    width:min(350px,calc(100vw - 36px));
+  }
+}
+
+@media(max-width:480px) {
+  .landing-auth .modal-card {
+    padding:20px 18px;
+  }
 }
