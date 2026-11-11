@@ -138,6 +138,20 @@ const upload = multer({
   }
 });
 
+// Direct-to-Roblox uploads are isolated from converter uploads.
+// Roblox audio constraints are enforced again in the route (20 MB / 7 minutes).
+const directRobloxUpload = multer({
+  dest: UPLOAD_DIR,
+  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    if (![".mp3", ".wav", ".ogg", ".flac"].includes(ext)) {
+      return cb(new Error("Format yang didukung: MP3, WAV, OGG, dan FLAC."));
+    }
+    cb(null, true);
+  }
+});
+
 // ===============================
 // AUTHENTICATION
 // ===============================
@@ -1153,6 +1167,104 @@ app.post("/api/roblox/upload", auth, requiredAuth, async (req, res) => {
     console.error("ROBLOX AUDIO UPLOAD ERROR:", error);
     const message = error.message || "Roblox audio upload failed";
     return res.status(message.includes("Hubungkan akun") || message.includes("Sesi Roblox") ? 400 : 500).json({ error: message });
+  }
+});
+
+
+
+// Upload an audio file selected directly from the member's device.
+// This route is intentionally separate from /api/roblox/upload, which handles
+// files already produced by Convert / Auto Split.
+app.post("/api/roblox/upload-direct", auth, requiredAuth, directRobloxUpload.single("file"), async (req, res) => {
+  const tempPath = req.file?.path;
+  try {
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Ahoy member account not found" });
+    if (!req.file) return res.status(400).json({ error: "Pilih file audio terlebih dahulu." });
+
+    const ext = path.extname(req.file.originalname || "").toLowerCase();
+    const mimeTypes = { ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg", ".flac": "audio/flac" };
+    if (!mimeTypes[ext]) return res.status(400).json({ error: "Format yang didukung: MP3, WAV, OGG, dan FLAC." });
+    const stats = fs.statSync(tempPath);
+    if (stats.size > 20 * 1024 * 1024) return res.status(413).json({ error: "Ukuran file melebihi batas Roblox 20 MB." });
+    const duration = await probeAudioDuration(tempPath);
+    if (duration > 7 * 60) return res.status(400).json({ error: "Durasi audio melebihi batas Roblox 7 menit. Gunakan Auto Split." });
+
+    const { token, connection } = await getValidRobloxAccessToken(user.username);
+    const requestedName = String(req.body?.displayName || path.basename(req.file.originalname, ext))
+      .replace(/[\x00-\x1f]/g, " ").trim().slice(0, 50) || "Ahoy Audio";
+    const description = String(req.body?.description || "Uploaded directly with Ahoy's Audio Converter")
+      .replace(/[\x00-\x1f]/g, " ").trim().slice(0, 1000);
+
+    const requestData = {
+      assetType: "Audio",
+      displayName: requestedName,
+      description,
+      creationContext: { creator: { userId: String(connection.roblox_user_id) } }
+    };
+    const form = new FormData();
+    form.append("request", JSON.stringify(requestData));
+    form.append("fileContent", new Blob([fs.readFileSync(tempPath)], { type: mimeTypes[ext] }), requestedName + ext);
+
+    const uploadResponse = await fetch("https://apis.roblox.com/assets/v1/assets", {
+      method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form,
+      signal: AbortSignal.timeout(60000)
+    });
+    const uploadData = await uploadResponse.json().catch(() => ({}));
+    if (!uploadResponse.ok) {
+      const message = uploadData.message || uploadData.error?.message || uploadData.error || `Roblox upload failed (HTTP ${uploadResponse.status})`;
+      return res.status(uploadResponse.status === 429 ? 429 : 400).json({ error: String(message).slice(0, 350) });
+    }
+
+    let asset = uploadData.response || uploadData;
+    if (!asset.assetId && uploadData.path) {
+      const operationId = String(uploadData.path).split("/").pop();
+      for (let attempt = 0; attempt < 25; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const poll = await fetch(`https://apis.roblox.com/assets/v1/operations/${encodeURIComponent(operationId)}`, {
+          headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000)
+        });
+        const operation = await poll.json().catch(() => ({}));
+        if (!poll.ok) throw new Error(operation.message || `Roblox upload status failed (HTTP ${poll.status})`);
+        if (operation.done) {
+          if (operation.error) throw new Error(operation.error.message || "Roblox rejected this audio upload");
+          asset = operation.response || {};
+          break;
+        }
+      }
+    }
+
+    const assetId = String(asset.assetId || "");
+    if (!/^\d+$/.test(assetId)) {
+      return res.status(504).json({ error: "Roblox menerima upload tetapi belum mengembalikan Audio ID. Cek Creator Hub beberapa saat lagi." });
+    }
+    const rawModeration = String(asset.moderationResult?.moderationState || "MODERATION_STATE_REVIEWING");
+    const moderationStatus = rawModeration.includes("APPROVED") ? "approved"
+      : rawModeration.includes("REJECTED") ? "rejected" : "pending";
+    const { error: historyError } = await supabase.from("roblox_upload_history").insert({
+      username: user.username,
+      roblox_user_id: String(connection.roblox_user_id),
+      roblox_username: connection.roblox_username,
+      asset_id: assetId,
+      display_name: requestedName,
+      status: moderationStatus,
+      moderation_state: rawModeration,
+      creator_url: "https://create.roblox.com/dashboard/creations"
+    });
+    if (historyError) console.error("ROBLOX DIRECT HISTORY SAVE ERROR:", historyError);
+    return res.json({
+      success: true, assetId, displayName: requestedName,
+      robloxUsername: connection.roblox_username,
+      moderationState: asset.moderationResult?.moderationState || null,
+      status: moderationStatus,
+      creatorUrl: "https://create.roblox.com/dashboard/creations"
+    });
+  } catch (error) {
+    console.error("ROBLOX DIRECT AUDIO UPLOAD ERROR:", error);
+    const message = error.message || "Roblox audio upload failed";
+    return res.status(message.includes("Hubungkan akun") || message.includes("Sesi Roblox") ? 400 : 500).json({ error: message });
+  } finally {
+    if (tempPath) fs.promises.unlink(tempPath).catch(() => {});
   }
 });
 
