@@ -1153,6 +1153,7 @@ function initAhoyWorkspaces() {
     }
   };
   addNav("ahoySplitNav", "Split", "#ahoySplitWorkspace");
+  addNav("ahoyDirectUploadNav", "Upload To Roblox", "#ahoyDirectUploadWorkspace");
   addNav("ahoyHistoryNav", "Roblox History", "#ahoyHistoryWorkspace");
 
   // Move the existing Auto Split panel intact into its own workspace.
@@ -1162,6 +1163,32 @@ function initAhoyWorkspaces() {
   splitWorkspace.innerHTML = '<div class="section-head"><div><div class="eyebrow">02 / AUDIO WORKSPACE</div><h2>Audio Split</h2></div><span class="pill">AUTO SPLIT</span></div>';
   if (splitPanel) splitWorkspace.appendChild(splitPanel);
   converter.insertAdjacentElement("afterend", splitWorkspace);
+
+  // Dedicated direct-device upload workspace (not tied to Convert / Auto Split outputs).
+  const directUploadWorkspace = document.createElement("section");
+  directUploadWorkspace.id = "ahoyDirectUploadWorkspace";
+  directUploadWorkspace.className = "panel ahoy-workspace";
+  directUploadWorkspace.innerHTML = `
+    <div class="section-head">
+      <div><div class="eyebrow">03 / ROBLOX CREATOR HUB</div><h2>Upload To Roblox</h2></div>
+      <span class="pill">DIRECT UPLOAD</span>
+    </div>
+    <p class="ahoy-history-subtitle">Pilih MP3, WAV, OGG, atau FLAC langsung dari perangkat. Bisa upload beberapa file sekaligus; setiap file diproses satu per satu ke akun Roblox yang terhubung.</p>
+    <div class="aru-direct-drop" id="aruDirectDrop">
+      <input id="aruDirectFiles" type="file" accept=".mp3,.wav,.ogg,.flac,audio/mpeg,audio/wav,audio/ogg,audio/flac" multiple hidden>
+      <div class="aru-direct-icon">↑</div>
+      <strong>Drop audio files here</strong>
+      <span>atau pilih file dari perangkat · MP3 / WAV / OGG / FLAC · Maks. 20 MB dan 7 menit per file</span>
+      <button type="button" class="outline" id="aruDirectBrowse">CHOOSE AUDIO FILES</button>
+    </div>
+    <div class="aru-direct-toolbar">
+      <span id="aruDirectCount">Belum ada file dipilih</span>
+      <div><button type="button" class="outline" id="aruDirectClear">CLEAR LIST</button><button type="button" class="gold-btn" id="aruDirectStart">UPLOAD ALL TO ROBLOX</button></div>
+    </div>
+    <div class="aru-direct-queue" id="aruDirectQueue"><div class="aru-direct-empty">File yang dipilih akan muncul di sini.</div></div>
+    <div class="aru-direct-foot" id="aruDirectFoot" aria-live="polite">Upload memakai akun Roblox yang sudah kamu hubungkan. Kuota convert tidak digunakan oleh fitur upload langsung.</div>
+  `;
+  splitWorkspace.insertAdjacentElement("afterend", directUploadWorkspace);
 
   // Dedicated upload history table.
   const historyWorkspace = document.createElement("section");
@@ -1187,17 +1214,19 @@ function initAhoyWorkspaces() {
     </div>
     <div class="ahoy-history-foot" id="ahoyHistoryFoot" aria-live="polite">Status pending diperbarui otomatis saat halaman riwayat dibuka.</div>
   `;
-  splitWorkspace.insertAdjacentElement("afterend", historyWorkspace);
+  directUploadWorkspace.insertAdjacentElement("afterend", historyWorkspace);
 
   const styles = document.createElement("style");
   styles.id = "ahoyWorkspaceStyles";
   styles.textContent = `
     .ahoy-workspace{display:none;max-width:1500px;margin:28px auto}
-    body.ahoy-view-split #converter,body.ahoy-view-split #ahoyHistoryWorkspace,body.ahoy-view-split #membership{display:none!important}
+    body.ahoy-view-split #converter,body.ahoy-view-split #ahoyDirectUploadWorkspace,body.ahoy-view-split #ahoyHistoryWorkspace,body.ahoy-view-split #membership{display:none!important}
     body.ahoy-view-split #ahoySplitWorkspace{display:block!important}
-    body.ahoy-view-history #converter,body.ahoy-view-history #ahoySplitWorkspace,body.ahoy-view-history #membership{display:none!important}
+    body.ahoy-view-directupload #converter,body.ahoy-view-directupload #ahoySplitWorkspace,body.ahoy-view-directupload #ahoyHistoryWorkspace,body.ahoy-view-directupload #membership{display:none!important}
+    body.ahoy-view-directupload #ahoyDirectUploadWorkspace{display:block!important}
+    body.ahoy-view-history #converter,body.ahoy-view-history #ahoySplitWorkspace,body.ahoy-view-history #ahoyDirectUploadWorkspace,body.ahoy-view-history #membership{display:none!important}
     body.ahoy-view-history #ahoyHistoryWorkspace{display:block!important}
-    body.ahoy-view-converter #ahoySplitWorkspace,body.ahoy-view-converter #ahoyHistoryWorkspace{display:none!important}
+    body.ahoy-view-converter #ahoySplitWorkspace,body.ahoy-view-converter #ahoyDirectUploadWorkspace,body.ahoy-view-converter #ahoyHistoryWorkspace{display:none!important}
     .ahoy-history-subtitle{color:#aaa;font-size:13px;margin:0 0 18px}
     .ahoy-history-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
     .ahoy-history-summary>div{padding:15px;border:1px solid rgba(180,160,220,.16);border-radius:12px;background:linear-gradient(145deg,#171522,#0d0c13);display:grid;gap:5px}
@@ -1217,26 +1246,46 @@ function initAhoyWorkspaces() {
     .ahoy-history-table a{color:#c8b4f0;text-decoration:none}
     .ahoy-history-table a:hover{text-decoration:underline}
     .ahoy-history-foot{font-size:11px;color:#888;margin-top:12px}
-    @media(max-width:650px){.ahoy-history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.ahoy-history-summary>div{padding:12px}}
+    #ahoyDirectUploadWorkspace .aru-direct-drop{display:grid;justify-items:center;gap:10px;text-align:center;padding:30px 18px;border:1px dashed rgba(164,196,218,.38);border-radius:12px;background:radial-gradient(ellipse at 50% 0,rgba(84,104,143,.13),transparent 65%),#0c0b10;transition:.2s ease}
+    #ahoyDirectUploadWorkspace .aru-direct-drop.drag{border-color:#c8dff0;background:#121522;box-shadow:0 0 24px rgba(126,169,199,.13)}
+    .aru-direct-icon{font-size:28px;color:#c7ddec;text-shadow:0 0 18px #9fc5df66}
+    .aru-direct-drop strong{font-size:14px;color:#e8e6ed}.aru-direct-drop span{font-size:11px;color:#999;line-height:1.6}
+    .aru-direct-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0;color:#aaa;font-size:11px}
+    .aru-direct-toolbar>div{display:flex;gap:8px;flex-wrap:wrap}.aru-direct-toolbar button{font-size:10px;padding:9px 12px}
+    .aru-direct-queue{display:grid;gap:9px}.aru-direct-empty{padding:22px;text-align:center;border:1px solid rgba(180,160,220,.12);border-radius:9px;color:#777;font-size:12px}
+    .aru-direct-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center;padding:13px;border:1px solid rgba(180,160,220,.14);border-radius:9px;background:linear-gradient(145deg,#15141c,#0c0b10)}
+    .aru-direct-file{min-width:0}.aru-direct-file strong{display:block;color:#e5e2ec;font-size:12px;overflow-wrap:anywhere}.aru-direct-file small{display:block;margin-top:4px;color:#888;font-size:10px}
+    .aru-direct-state{font-size:10px;color:#b9c9d9;text-align:right}.aru-direct-progress{grid-column:1/-1;width:100%;height:4px;border:0;border-radius:9px;overflow:hidden;background:#292631;accent-color:#9ebbd0}
+    .aru-direct-progress::-webkit-progress-bar{background:#292631}.aru-direct-progress::-webkit-progress-value{background:linear-gradient(90deg,#758da8,#d3e5f1)}
+    .aru-direct-result{grid-column:1/-1;color:#a9c6d9;font-size:10px;overflow-wrap:anywhere}.aru-direct-result a{color:#c7dff0;text-decoration:none}
+    .aru-direct-foot{margin-top:13px;color:#888;font-size:10px;line-height:1.6}
+    @media(max-width:800px){body.is-authenticated header nav a#ahoySplitNav,body.is-authenticated header nav a#ahoyDirectUploadNav,body.is-authenticated header nav a#ahoyHistoryNav{display:inline-flex;font-size:10px}}
+    @media(max-width:650px){.ahoy-history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.ahoy-history-summary>div{padding:12px}.aru-direct-toolbar{align-items:stretch;flex-direction:column}.aru-direct-toolbar>div{display:grid;grid-template-columns:1fr 1fr}.aru-direct-item{grid-template-columns:1fr}.aru-direct-state{text-align:left}}
+
   `;
   document.head.appendChild(styles);
 
   const showView = view => {
-    document.body.classList.remove("ahoy-view-converter","ahoy-view-split","ahoy-view-history");
+    document.body.classList.remove("ahoy-view-converter","ahoy-view-split","ahoy-view-directupload","ahoy-view-history");
     document.body.classList.add("ahoy-view-" + view);
     if (view === "history") loadAhoyRobloxHistory();
+    if (view === "directupload") refreshDirectRobloxConnection();
   };
   $("ahoySplitNav").addEventListener("click", () => showView("split"));
+  $("ahoyDirectUploadNav").addEventListener("click", () => showView("directupload"));
   $("ahoyHistoryNav").addEventListener("click", () => showView("history"));
   const converterNav = nav.querySelector('a[href="#converter"]');
   converterNav?.addEventListener("click", () => showView("converter"));
   $("ahoyHistoryRefresh").addEventListener("click", loadAhoyRobloxHistory);
+  initAhoyDirectUpload();
   window.addEventListener("hashchange", () => {
     if (location.hash === "#ahoySplitWorkspace") showView("split");
+    else if (location.hash === "#ahoyDirectUploadWorkspace") showView("directupload");
     else if (location.hash === "#ahoyHistoryWorkspace") showView("history");
     else if (location.hash === "#converter") showView("converter");
   });
   if (location.hash === "#ahoyHistoryWorkspace") showView("history");
+  else if (location.hash === "#ahoyDirectUploadWorkspace") showView("directupload");
   else if (location.hash === "#ahoySplitWorkspace") showView("split");
   else showView("converter");
 
@@ -1246,6 +1295,118 @@ function initAhoyWorkspaces() {
       if (document.body.classList.contains("ahoy-view-history")) loadAhoyRobloxHistory(true);
     }, 25000);
   }
+}
+
+
+
+function initAhoyDirectUpload() {
+  const input = $("aruDirectFiles");
+  const drop = $("aruDirectDrop");
+  const queue = $("aruDirectQueue");
+  if (!input || !drop || drop.dataset.ready === "1") return;
+  drop.dataset.ready = "1";
+  let files = [];
+  let busy = false;
+  const allowed = new Set(["mp3", "wav", "ogg", "flac"]);
+  const sizeLabel = bytes => bytes >= 1048576 ? (bytes / 1048576).toFixed(2) + " MB" : (bytes / 1024).toFixed(0) + " KB";
+  const render = () => {
+    $("aruDirectCount").textContent = files.length ? `${files.length} file dipilih` : "Belum ada file dipilih";
+    queue.replaceChildren();
+    if (!files.length) {
+      const empty = document.createElement("div"); empty.className = "aru-direct-empty"; empty.textContent = "File yang dipilih akan muncul di sini."; queue.append(empty); return;
+    }
+    files.forEach((entry, index) => {
+      const row = document.createElement("div"); row.className = "aru-direct-item";
+      const info = document.createElement("div"); info.className = "aru-direct-file";
+      const name = document.createElement("strong"); name.textContent = entry.file.name;
+      const meta = document.createElement("small"); meta.textContent = `${sizeLabel(entry.file.size)} · ${entry.file.type || "audio"}`;
+      info.append(name, meta);
+      const state = document.createElement("div"); state.className = "aru-direct-state"; state.textContent = entry.state;
+      const progress = document.createElement("progress"); progress.className = "aru-direct-progress"; progress.max = 100; progress.value = entry.progress;
+      const result = document.createElement("div"); result.className = "aru-direct-result";
+      if (entry.assetId) {
+        const link = document.createElement("a"); link.href = "https://www.roblox.com/library/" + encodeURIComponent(entry.assetId); link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = `Audio ID: ${entry.assetId} · Open Roblox asset`;
+        result.append(link);
+      } else result.textContent = entry.error || "Menunggu upload";
+      row.append(info, state, progress, result); queue.append(row);
+    });
+  };
+  const add = list => {
+    const incoming = Array.from(list || []);
+    let rejected = 0;
+    for (const file of incoming) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (!allowed.has(ext) || file.size > 20 * 1024 * 1024 || !file.size) { rejected++; continue; }
+      if (files.some(item => item.file.name === file.name && item.file.size === file.size && item.file.lastModified === file.lastModified)) continue;
+      files.push({ file, state: "Queued", progress: 0, assetId: null, error: "" });
+    }
+    if (rejected) $("aruDirectFoot").textContent = `${rejected} file dilewati. Format harus MP3/WAV/OGG/FLAC dan ukuran maksimal 20 MB per file.`;
+    else $("aruDirectFoot").textContent = "File siap diunggah. Maksimal 20 MB dan 7 menit per file.";
+    render();
+  };
+  $("aruDirectBrowse").addEventListener("click", () => input.click());
+  drop.addEventListener("click", event => { if (event.target.id !== "aruDirectBrowse") input.click(); });
+  input.addEventListener("change", () => { add(input.files); input.value = ""; });
+  drop.addEventListener("dragover", event => { event.preventDefault(); drop.classList.add("drag"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+  drop.addEventListener("drop", event => { event.preventDefault(); drop.classList.remove("drag"); add(event.dataTransfer.files); });
+  $("aruDirectClear").addEventListener("click", () => { if (busy) return; files = []; render(); });
+
+  const uploadOne = (entry) => new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    const form = new FormData();
+    form.append("file", entry.file, entry.file.name);
+    form.append("displayName", entry.file.name.replace(/\.[^.]+$/, "").slice(0, 50));
+    entry.state = "Uploading…"; entry.error = ""; render();
+    xhr.open("POST", API + "/api/roblox/upload-direct");
+    const token = localStorage.getItem("ahoyToken");
+    if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable) { entry.progress = Math.min(95, Math.round(event.loaded / event.total * 95)); entry.state = "Sending…"; render(); }
+    };
+    xhr.onload = () => {
+      let data = {}; try { data = JSON.parse(xhr.responseText || "{}"); } catch {}
+      if (xhr.status >= 200 && xhr.status < 300 && data.assetId) {
+        entry.progress = 100; entry.assetId = data.assetId; entry.state = String(data.status || "pending").toUpperCase();
+        entry.error = "Roblox menerima audio. Status moderasi dapat berubah setelah pemeriksaan.";
+        window.dispatchEvent(new Event("ahoy:roblox-uploaded"));
+      } else { entry.state = "Failed"; entry.error = data.error || `Upload gagal (HTTP ${xhr.status || 0}).`; }
+      render(); resolve();
+    };
+    xhr.onerror = () => { entry.state = "Failed"; entry.error = "Koneksi terputus saat upload."; render(); resolve(); };
+    xhr.onabort = () => { entry.state = "Cancelled"; entry.error = "Upload dibatalkan."; render(); resolve(); };
+    xhr.send(form);
+  });
+
+  $("aruDirectStart").addEventListener("click", async () => {
+    if (busy) return;
+    if (!localStorage.getItem("ahoyToken")) { $("aruDirectFoot").textContent = "Login ke akun AHOY terlebih dahulu."; return; }
+    const pending = files.filter(entry => !entry.assetId);
+    if (!pending.length) { $("aruDirectFoot").textContent = "Pilih file audio yang ingin di-upload."; return; }
+    busy = true; $("aruDirectStart").disabled = true; $("aruDirectClear").disabled = true;
+    let done = 0;
+    for (const entry of pending) {
+      await uploadOne(entry); done++;
+      $("aruDirectFoot").textContent = `Proses upload ${done}/${pending.length} selesai. File berikutnya akan diproses otomatis.`;
+    }
+    busy = false; $("aruDirectStart").disabled = false; $("aruDirectClear").disabled = false;
+    const success = files.filter(entry => entry.assetId).length;
+    $("aruDirectFoot").textContent = `Selesai: ${success} berhasil dari ${files.length} file. Cek Roblox Upload History untuk status moderasi terbaru.`;
+    window.dispatchEvent(new Event("ahoy:roblox-uploaded"));
+  });
+  render();
+}
+
+async function refreshDirectRobloxConnection() {
+  const foot = $("aruDirectFoot");
+  if (!foot) return;
+  if (!localStorage.getItem("ahoyToken")) { foot.textContent = "Login ke akun AHOY terlebih dahulu, lalu hubungkan akun Roblox."; return; }
+  try {
+    const data = await robloxRequest("/api/roblox/status");
+    foot.textContent = data.connected
+      ? `Terhubung sebagai @${data.robloxUsername}. Upload langsung akan masuk ke akun Roblox ini; kuota convert tidak digunakan.`
+      : "Akun Roblox belum terhubung. Buka panel Roblox Creator Hub di halaman Converter untuk menghubungkannya terlebih dahulu.";
+  } catch (error) { foot.textContent = error.message || "Gagal memeriksa koneksi Roblox."; }
 }
 
 function loadAhoyRobloxHistory(silent = false) {
