@@ -1488,3 +1488,140 @@ body:not(.is-authenticated) header nav a[href^="#"]:active {
     }
 }
 
+/* ==========================================
+   AHOY'S PRODUCTIONS — GLOBAL MACOS GLASS
+   ========================================== */
+
+:root {
+  --ahoy-glass-border: rgba(225,235,255,.28);
+  --ahoy-glass-text: #f5f7fc;
+  --ahoy-glass-glow: rgba(190,210,245,.22);
+}
+
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  [role="button"],
+  .btn,
+  .button,
+  .gold-btn,
+  .outline,
+  .tab,
+  .tabs button,
+  .auth-tabs button,
+  header nav a[href^="#"]
+):not(:disabled) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  color: var(--ahoy-glass-text) !important;
+  border: 1px solid var(--ahoy-glass-border) !important;
+  border-radius: 24px !important;
+
+  background:
+    radial-gradient(
+      circle at var(--ahoy-mx, 50%) var(--ahoy-my, 50%),
+      rgba(240,247,255,.24),
+      transparent 65%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.19),
+      rgba(255,255,255,.055)
+    ) !important;
+
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,.28),
+    inset 0 -2px 4px rgba(0,0,0,.28),
+    0 5px 15px rgba(0,0,0,.38);
+
+  transition:
+    transform .28s cubic-bezier(.2,.8,.2,1),
+    box-shadow .3s ease,
+    border-color .3s ease,
+    filter .3s ease !important;
+}
+
+/* HOVER — FLOATING GLASS */
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  [role="button"],
+  .btn,
+  .button,
+  .gold-btn,
+  .outline,
+  .tab,
+  .tabs button,
+  .auth-tabs button,
+  header nav a[href^="#"]
+):not(:disabled):hover {
+  transform: translateY(-3px) scale(1.025);
+  border-color: rgba(245,249,255,.7) !important;
+
+  box-shadow:
+    0 12px 28px var(--ahoy-glass-glow),
+    0 3px 9px rgba(0,0,0,.35),
+    inset 0 1px 3px rgba(255,255,255,.4) !important;
+
+  filter: brightness(1.12);
+}
+
+/* CLICK — PRESSED GLASS */
+:where(
+  button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  [role="button"],
+  .btn,
+  .button,
+  .gold-btn,
+  .outline,
+  .tab,
+  .tabs button,
+  .auth-tabs button,
+  header nav a[href^="#"]
+):not(:disabled):active {
+  transform: translateY(1px) scale(.97) !important;
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,.35),
+    0 2px 5px rgba(0,0,0,.2) !important;
+}
+
+/* KEYBOARD ACCESSIBILITY */
+:where(button, a, [role="button"]):focus-visible {
+  outline: 2px solid rgba(225,237,255,.8);
+  outline-offset: 3px;
+}
+
+/* DISABLED BUTTON */
+:where(button, input, [role="button"]):disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  filter: grayscale(.4);
+  box-shadow: none;
+}
+
+/* TOUCH DEVICES */
+@media (hover: none) {
+  :where(button, a, [role="button"]):active {
+    transform: scale(.97);
+  }
+}
+
+/* REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+  :where(button, a, [role="button"]) {
+    transition: none !important;
+  }
+}
+
