@@ -1625,3 +1625,43 @@ body:not(.is-authenticated) header nav a[href^="#"]:active {
   }
 }
 
+
+/* =====================================
+   AHOY — REMOVE TABLET & HEADPHONES
+   ===================================== */
+
+/* Hilangkan frame tablet, pertahankan isi visual */
+body:not(.is-authenticated) .ahoy-tablet,
+body:not(.is-authenticated) .device-window {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transform: none !important;
+}
+
+/* Hilangkan headphone */
+body:not(.is-authenticated) .headphones,
+body:not(.is-authenticated) .headband,
+body:not(.is-authenticated) .earcup {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Hilangkan badge Secure Fast Reliable */
+body:not(.is-authenticated) .landing-status {
+    display: none !important;
+}
+
+/* Hilangkan dekorasi frame tablet */
+body:not(.is-authenticated) .ahoy-tablet::before,
+body:not(.is-authenticated) .ahoy-tablet::after,
+body:not(.is-authenticated) .device-window::before,
+body:not(.is-authenticated) .device-window::after {
+    display: none !important;
+}
+
+
