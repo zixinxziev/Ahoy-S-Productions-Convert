@@ -1665,3 +1665,90 @@ body:not(.is-authenticated) .device-window::after {
 }
 
 
+/* =========================================
+   AHOY — AUTO SPLIT MIDNIGHT BLACK THEME
+   ========================================= */
+
+#ahoySplitWorkspace {
+    color: #e9edf5 !important;
+    background: linear-gradient(
+        145deg,
+        #151922,
+        #090c13 65%,
+        #10141d
+    ) !important;
+    border: 1px solid rgba(205,220,245,.20) !important;
+}
+
+/* Semua tulisan */
+#ahoySplitWorkspace,
+#ahoySplitWorkspace label,
+#ahoySplitWorkspace p,
+#ahoySplitWorkspace span,
+#ahoySplitWorkspace h1,
+#ahoySplitWorkspace h2,
+#ahoySplitWorkspace h3,
+#ahoySplitWorkspace strong {
+    color: #e9eef8 !important;
+}
+
+/* Input dan pilihan durasi */
+#ahoySplitWorkspace select,
+#ahoySplitWorkspace input {
+    color: #f1f5fc !important;
+    color-scheme: dark !important;
+    background: linear-gradient(
+        145deg,
+        #252c39,
+        #111620
+    ) !important;
+    border: 1px solid rgba(210,225,250,.27) !important;
+    border-radius: 20px !important;
+    box-shadow:
+        inset 0 1px 2px rgba(255,255,255,.12),
+        0 5px 15px rgba(0,0,0,.35) !important;
+}
+
+/* Dropdown options — hilangkan putih */
+#ahoySplitWorkspace select option {
+    background-color: #0b1019 !important;
+    color: #e8edf7 !important;
+}
+
+/* Tombol pilih audio dan auto split */
+#ahoySplitWorkspace button,
+#ahoySplitWorkspace .btn {
+    color: #f2f5fc !important;
+    background: linear-gradient(
+        145deg,
+        rgba(105,119,145,.38),
+        rgba(24,30,42,.95)
+    ) !important;
+    border: 1px solid rgba(220,232,250,.27) !important;
+    box-shadow:
+        inset 0 1px 2px rgba(255,255,255,.18),
+        0 7px 20px rgba(0,0,0,.35) !important;
+}
+
+/* Placeholder */
+#ahoySplitWorkspace input::placeholder {
+    color: #aab5c8 !important;
+}
+
+/* Disabled buttons */
+#ahoySplitWorkspace button:disabled {
+    color: #858fa1 !important;
+    background: #171c26 !important;
+    border-color: #343b49 !important;
+    opacity: .65;
+}
+
+/* Hover */
+#ahoySplitWorkspace button:not(:disabled):hover,
+#ahoySplitWorkspace select:hover {
+    border-color: rgba(235,243,255,.65) !important;
+    box-shadow:
+        0 10px 25px rgba(180,200,235,.15),
+        inset 0 1px 3px rgba(255,255,255,.22) !important;
+}
+
