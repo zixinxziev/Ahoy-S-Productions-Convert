@@ -1462,3 +1462,37 @@ function loadAhoyRobloxHistory(silent = false) {
 
 document.addEventListener("DOMContentLoaded", initAhoyWorkspaces);
 window.addEventListener("ahoy:roblox-uploaded", () => loadAhoyRobloxHistory());
+
+
+/* AHOY — INTERACTIVE GLASS CURSOR */
+(() => {
+    const selectors = [
+        'a[href="#converter"]',
+        'a[href="#membership"]',
+        'a[href="#ahoySplitWorkspace"]',
+        'a[href="#ahoyDirectUploadWorkspace"]',
+        'a[href="#ahoyHistoryWorkspace"]'
+    ];
+
+    const buttons = document.querySelectorAll(
+        selectors.map(s => `header nav ${s}`).join(',')
+    );
+
+    buttons.forEach(button => {
+        button.addEventListener('pointermove', event => {
+            const rect = button.getBoundingClientRect();
+
+            const x = ((event.clientX - rect.left) / rect.width) * 100;
+            const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+            button.style.setProperty('--mx', `${x}%`);
+            button.style.setProperty('--my', `${y}%`);
+        });
+
+        button.addEventListener('pointerleave', () => {
+            button.style.setProperty('--mx', '50%');
+            button.style.setProperty('--my', '50%');
+        });
+    });
+})();
+
