@@ -1384,3 +1384,107 @@ header nav a[href^="#"]:hover {
 header nav a[href^="#"]:active {
   transform: translateY(1px) scale(.96);
 }
+
+
+/* AHOY — MACOS LIQUID GLASS NAVIGATION */
+body:not(.is-authenticated) header nav {
+    gap: 9px !important;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+body:not(.is-authenticated) header nav a[href="#converter"],
+body:not(.is-authenticated) header nav a[href="#membership"],
+body:not(.is-authenticated) header nav a[href="#ahoySplitWorkspace"],
+body:not(.is-authenticated) header nav a[href="#ahoyDirectUploadWorkspace"],
+body:not(.is-authenticated) header nav a[href="#ahoyHistoryWorkspace"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 11px 17px !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(225,235,255,.27) !important;
+
+    color: #f4f7ff !important;
+    background:
+      radial-gradient(
+        circle at var(--mx, 50%) var(--my, 50%),
+        rgba(235,245,255,.20),
+        transparent 65%
+      ),
+      linear-gradient(145deg,
+        rgba(255,255,255,.17),
+        rgba(255,255,255,.045)
+      ) !important;
+
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,.25),
+      inset 0 -2px 4px rgba(0,0,0,.3),
+      0 5px 14px rgba(0,0,0,.4);
+
+    transform: translateY(0) scale(1);
+    transition:
+      transform .28s cubic-bezier(.2,.8,.2,1),
+      box-shadow .3s ease,
+      border-color .3s ease,
+      background .3s ease !important;
+}
+
+/* Silver reflection */
+body:not(.is-authenticated) header nav a[href^="#"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(
+      125deg,
+      transparent 20%,
+      rgba(255,255,255,.17) 48%,
+      transparent 75%
+    );
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: opacity .3s ease;
+}
+
+/* Floating glass effect */
+body:not(.is-authenticated) header nav a[href^="#"]:hover {
+    transform: translateY(-4px) scale(1.035) !important;
+    border-color: rgba(235,245,255,.65) !important;
+
+    box-shadow:
+      0 12px 27px rgba(170,195,235,.20),
+      0 3px 8px rgba(0,0,0,.4),
+      inset 0 1px 3px rgba(255,255,255,.42) !important;
+}
+
+body:not(.is-authenticated) header nav a[href^="#"]:hover::after {
+    opacity: 1;
+    animation: ahoyGlassReflection 1.1s ease forwards;
+}
+
+@keyframes ahoyGlassReflection {
+    to { transform: translateX(100%); }
+}
+
+body:not(.is-authenticated) header nav a[href^="#"]:active {
+    transform: translateY(1px) scale(.97) !important;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,.35) !important;
+}
+
+@media(max-width:520px) {
+    body:not(.is-authenticated) header nav {
+        gap: 6px !important;
+    }
+
+    body:not(.is-authenticated) header nav a[href^="#"] {
+        padding: 9px 12px !important;
+    }
+}
+
