@@ -1496,3 +1496,77 @@ window.addEventListener("ahoy:roblox-uploaded", () => loadAhoyRobloxHistory());
     });
 })();
 
+
+/* ==========================================
+   AHOY'S — GLOBAL INTERACTIVE GLASS CURSOR
+   ========================================== */
+
+(() => {
+  const selector = [
+    'button',
+    'input[type="button"]',
+    'input[type="submit"]',
+    'input[type="reset"]',
+    '[role="button"]',
+    '.btn',
+    '.button',
+    '.gold-btn',
+    '.outline',
+    '.tab',
+    '.tabs button',
+    '.auth-tabs button',
+    'header nav a[href^="#"]'
+  ].join(',');
+
+  let activeButton = null;
+
+  document.addEventListener('pointerover', event => {
+    const button = event.target.closest(selector);
+    if (!button || button.disabled) return;
+
+    activeButton = button;
+    button.classList.add('ahoy-glass-hover');
+  });
+
+  document.addEventListener('pointermove', event => {
+    if (event.pointerType === 'touch') return;
+
+    const button = event.target.closest(selector);
+
+    if (!button || button.disabled) {
+      if (activeButton) {
+        activeButton.classList.remove('ahoy-glass-hover');
+        activeButton = null;
+      }
+      return;
+    }
+
+    activeButton = button;
+
+    const rect = button.getBoundingClientRect();
+
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    button.style.setProperty('--ahoy-mx', `${x}%`);
+    button.style.setProperty('--ahoy-my', `${y}%`);
+
+    button.classList.add('ahoy-glass-hover');
+  });
+
+  document.addEventListener('pointerout', event => {
+    const button = event.target.closest(selector);
+
+    if (!button) return;
+
+    if (event.relatedTarget && button.contains(event.relatedTarget)) {
+      return;
+    }
+
+    button.classList.remove('ahoy-glass-hover');
+    button.style.setProperty('--ahoy-mx', '50%');
+    button.style.setProperty('--ahoy-my', '50%');
+
+    if (activeButton === button) activeButton = null;
+  });
+})();
