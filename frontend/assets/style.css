@@ -1343,3 +1343,44 @@ body:not(.is-authenticated) #accountBtn{display:none!important}
   mix-blend-mode:screen;transition:opacity .25s ease;
 }
 @media(hover:hover) and (pointer:fine){body.ahoy-pointer-active #ahoyCursorGlow{opacity:1}}
+header nav a[href="#converter"],
+header nav a[href="#membership"],
+header nav a[href="#ahoySplitWorkspace"],
+header nav a[href="#ahoyDirectUploadWorkspace"],
+header nav a[href="#ahoyHistoryWorkspace"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 19px;
+  border: 1px solid rgba(225,235,255,.24);
+  border-radius: 30px;
+  color: #f4f7ff !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255,255,255,.17),
+    rgba(255,255,255,.035)
+  );
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,.2),
+    0 6px 18px rgba(0,0,0,.35);
+  transition: all .3s cubic-bezier(.2,.8,.2,1);
+}
+
+header nav a[href^="#"]:hover {
+  transform: translateY(-4px);
+  border-color: rgba(235,243,255,.65);
+  background: linear-gradient(
+    145deg,
+    rgba(240,245,255,.28),
+    rgba(255,255,255,.09)
+  );
+  box-shadow:
+    0 10px 28px rgba(190,210,245,.18),
+    inset 0 1px 3px rgba(255,255,255,.35);
+}
+
+header nav a[href^="#"]:active {
+  transform: translateY(1px) scale(.96);
+}
