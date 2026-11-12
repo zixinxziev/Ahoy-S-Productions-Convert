@@ -1752,3 +1752,138 @@ body:not(.is-authenticated) .device-window::after {
         inset 0 1px 3px rgba(255,255,255,.22) !important;
 }
 
+/* ==========================================
+   AHOY — FULL WIDTH MOBILE RESPONSIVE FIX
+   ========================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+}
+
+@media screen and (max-width: 768px) {
+
+    html,
+    body {
+        width: 100vw !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    #app,
+    #root,
+    main,
+    .app,
+    .app-shell,
+    .main-content,
+    .main-container,
+    .container,
+    .content-wrapper,
+    .workspace,
+    .page-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    header {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        padding: 14px !important;
+        overflow: visible !important;
+    }
+
+    header nav {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        gap: 7px !important;
+        max-width: 100% !important;
+    }
+
+    header nav a {
+        white-space: normal !important;
+        font-size: 12px !important;
+        padding: 9px 12px !important;
+    }
+
+    /* All main application sections */
+    #converter,
+    #membership,
+    #ahoySplitWorkspace,
+    #ahoyDirectUploadWorkspace,
+    #ahoyHistoryWorkspace {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 16px !important;
+    }
+
+    /* Cards and panels */
+    .card,
+    .panel,
+    .converter-card,
+    .workspace-card,
+    .upload-card,
+    .settings-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Form elements */
+    input,
+    select,
+    textarea {
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Responsive grids */
+    .grid,
+    .form-grid,
+    .workspace-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100% !important;
+    }
+
+    /* Prevent oversized content */
+    img,
+    video,
+    canvas,
+    svg {
+        max-width: 100%;
+    }
+
+    /* Prevent horizontal overflow */
+    .table-wrapper,
+    .results-container,
+    .upload-list {
+        max-width: 100% !important;
+        overflow-x: auto;
+    }
+
+    /* Touch-friendly controls */
+    button {
+        max-width: 100%;
+        min-height: 42px;
+    }
+}
+
