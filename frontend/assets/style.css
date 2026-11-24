@@ -1887,3 +1887,27 @@ body {
     }
 }
 
+/* FIX: Speed Slider - Remove Ghost Frame */
+#manualSpeed {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#manualSpeed:focus,
+#manualSpeed:focus-visible,
+#manualSpeed:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#manualSpeed::-webkit-slider-thumb {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#manualSpeed::-moz-range-thumb {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
