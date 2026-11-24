@@ -83,44 +83,100 @@ function getRobloxTargetSpeed() {
   const custom = Math.max(0.5, Math.min(3, Number($("manualSpeed")?.value) || 1));
   return 1 / custom;
 }
-function syncRobloxModeUI() {
+
+function syncRobloxModeUI({ live = false } = {}) {
   const originalMode = Boolean($("robloxMode")?.checked);
-  const custom = Math.max(0.5, Math.min(3, Number($("manualSpeed")?.value) || 1));
+  const custom = Math.max(
+    0.5,
+    Math.min(3, Number($("manualSpeed")?.value) || 1)
+  );
   const target = getRobloxTargetSpeed();
+
   const targetInput = $("targetSpeed");
   const speedInput = $("manualSpeed");
   const pitchInput = $("pitch");
-  if (targetInput && !originalMode) targetInput.value = target.toFixed(4);
-  if (targetInput) targetInput.readOnly = !originalMode;
-  if (speedInput) {
-    speedInput.min = "0.5";
-    speedInput.max = "3";
-    speedInput.disabled = originalMode;
+
+  if (targetInput && !originalMode) {
+    targetInput.value = target.toFixed(4);
   }
-  if (pitchInput) pitchInput.disabled = !originalMode;
-  if (!originalMode && $("preservePitch")) $("preservePitch").checked = false;
+
+  // Properti mode hanya diperbarui saat sinkronisasi penuh.
+  if (!live) {
+    if (targetInput) targetInput.readOnly = !originalMode;
+
+    if (speedInput) {
+      speedInput.min = "0.5";
+      speedInput.max = "3";
+      speedInput.disabled = originalMode;
+    }
+
+    if (pitchInput) pitchInput.disabled = !originalMode;
+
+    if (!originalMode && $("preservePitch")) {
+      $("preservePitch").checked = false;
+    }
+  }
+
   const speedValue = $("manualSpeedValue");
   const pitchValue = $("pitchValue");
-  if (speedValue) speedValue.textContent = originalMode ? "AUTO" : `${custom.toFixed(2)}x`;
+
+  if (speedValue) {
+    speedValue.textContent = originalMode
+      ? "AUTO"
+      : `${custom.toFixed(2)}x`;
+  }
+
   if (pitchValue) {
     const pitchPercent = (custom - 1) * 100;
-    pitchValue.textContent = originalMode ? "AUTO" : `AUTO ${pitchPercent >= 0 ? "+" : ""}${pitchPercent.toFixed(1)}%`;
+    pitchValue.textContent = originalMode
+      ? "AUTO"
+      : `AUTO ${pitchPercent >= 0 ? "+" : ""}${pitchPercent.toFixed(1)}%`;
   }
-  const hint = $("speedHint");
-  if (hint) hint.textContent = originalMode
-    ? `AUTO MODE · Target ${target.toFixed(2)}x · Existing Roblox Original Sound compensation is active.`
-    : `MANUAL MODE · Custom Speed ${custom.toFixed(2)}x → Target Roblox PlaybackSpeed ${target.toFixed(4)}x · Pitch is automatically matched and compensated.`;
+
+  // Hindari penulisan ulang teks panjang selama slider digeser.
+  if (!live) {
+    const hint = $("speedHint");
+
+    if (hint) {
+      hint.textContent = originalMode
+        ? `AUTO MODE · Target ${target.toFixed(2)}x · Existing Roblox Original Sound compensation is active.`
+        : `MANUAL MODE · Custom Speed ${custom.toFixed(2)}x → Target Roblox PlaybackSpeed ${target.toFixed(4)}x · Pitch is automatically matched and compensated.`;
+    }
+  }
 }
-// Window bubble listeners run after the page's inline control listeners, keeping
-// the displayed automatic values in sync without requiring an index.html rewrite.
+
+// Batasi sinkronisasi realtime maksimal satu kali per frame.
+let speedSyncFrame = 0;
+
 window.addEventListener("input", event => {
-  if (["manualSpeed", "targetSpeed", "robloxMode"].includes(event.target?.id)) syncRobloxModeUI();
+  if (!["manualSpeed", "targetSpeed", "robloxMode"].includes(event.target?.id)) {
+    return;
+  }
+
+  if (speedSyncFrame) return;
+
+  speedSyncFrame = requestAnimationFrame(() => {
+    speedSyncFrame = 0;
+    syncRobloxModeUI({ live: true });
+  });
 });
+
 window.addEventListener("change", event => {
-  if (["manualSpeed", "targetSpeed", "robloxMode"].includes(event.target?.id)) syncRobloxModeUI();
+  if (!["manualSpeed", "targetSpeed", "robloxMode"].includes(event.target?.id)) {
+    return;
+  }
+
+  if (speedSyncFrame) {
+    cancelAnimationFrame(speedSyncFrame);
+    speedSyncFrame = 0;
+  }
+
+  syncRobloxModeUI();
 });
+
 syncRobloxModeUI();
-document.addEventListener("DOMContentLoaded", syncRobloxModeUI);
+document.addEventListener("DOMContentLoaded", () => syncRobloxModeUI());
+
 
 // AUDIO CONVERTER
 $("convert").onclick = async () => {
