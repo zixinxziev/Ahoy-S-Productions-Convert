@@ -701,9 +701,10 @@ function ffmpegExportSegment(input, output, start, duration, options) {
       .audioCodec(codecs[format] || "libmp3lame")
       .output(output);
 
-    // Match ffmpegConvert(): apply Roblox target speed or manual speed, pitch,
-    // preserve-pitch processing, and gain independently to every extracted part.
+    // Split Only exports the original segment without speed, pitch, or gain effects.
+    // Split + Convert uses the same processing chain as the main converter.
     const filters = [];
+    const splitOnly = Boolean(options.splitOnly);
     const originalMode = Boolean(options.robloxMode);
     const speed = originalMode
       ? 1 / Math.max(0.05, Number(options.targetSpeed) || 1)
@@ -711,13 +712,13 @@ function ffmpegExportSegment(input, output, start, duration, options) {
     const pitch = originalMode ? Math.max(-12, Math.min(12, Number(options.pitch) || 0)) : 0;
     const pitchRatio = Math.pow(2, pitch / 12);
 
-    if (!originalMode) {
+    if (!splitOnly && !originalMode) {
       // Same reciprocal-speed + pitch compensation as the regular converter.
       filters.push(
         `asetrate=${Math.round(sampleRate * speed)}`,
         `aresample=${sampleRate}`
       );
-    } else if (options.preservePitch) {
+    } else if (!splitOnly && options.preservePitch) {
       if (pitch !== 0) {
         filters.push(
           `asetrate=${Math.round(sampleRate * pitchRatio)}`,
@@ -735,7 +736,7 @@ function ffmpegExportSegment(input, output, start, duration, options) {
         remainingSpeed /= 0.5;
       }
       filters.push(`atempo=${remainingSpeed}`);
-    } else {
+    } else if (!splitOnly) {
       const combinedRate = speed * pitchRatio;
       filters.push(
         `asetrate=${Math.round(sampleRate * combinedRate)}`,
@@ -743,7 +744,7 @@ function ffmpegExportSegment(input, output, start, duration, options) {
       );
     }
 
-    const gain = Number(options.gain) || 0;
+    const gain = splitOnly ? 0 : (Number(options.gain) || 0);
     if (gain !== 0) filters.push(`volume=${gain}dB`);
     if (filters.length) cmd.audioFilters(filters);
 
@@ -885,8 +886,10 @@ app.post(
         return res.status(400).json({ error: "Invalid split options" });
       }
 
-      const format = String(options.format || "mp3").toLowerCase();
-      if (!["mp3", "wav", "flac", "m4a", "aac", "ogg", "opus"].includes(format)) {
+      const requestedFormat = String(options.format || "mp3").toLowerCase();
+      const sourceFormat = String(options.sourceFormat || path.extname(req.file.originalname).slice(1) || "mp3").toLowerCase();
+      const format = options.splitOnly ? sourceFormat : requestedFormat;
+      if (!["mp3", "wav", "flac", "m4a", "aac", "ogg", "opus"].includes(requestedFormat) || !["mp3", "wav", "flac", "m4a", "aac", "ogg", "opus"].includes(format)) {
         return res.status(400).json({ error: "Invalid output format" });
       }
       const requestedMinutes = Number(options.partMinutes);
@@ -1314,6 +1317,80 @@ app.get("/api/roblox/history", auth, requiredAuth, async (req, res) => {
   } catch (error) {
     console.error("ROBLOX HISTORY ERROR:", error);
     return res.status(500).json({ error: "Gagal memuat riwayat upload Roblox." });
+  }
+});
+
+// ===============================
+// DIRECT MEDIA DOWNLOADER (PUBLIC DIRECT LINKS ONLY)
+// ===============================
+const dns = require("dns").promises;
+const net = require("net");
+function isPublicAddress(address) {
+  if (net.isIP(address) === 4) {
+    const p = address.split(".").map(Number);
+    return !(p[0] === 10 || p[0] === 127 || p[0] === 0 || p[0] === 169 && p[1] === 254 || p[0] === 172 && p[1] >= 16 && p[1] <= 31 || p[0] === 192 && p[1] === 168 || p[0] >= 224);
+  }
+  if (net.isIP(address) === 6) {
+    const a = address.toLowerCase();
+    return !(a === "::1" || a === "::" || a.startsWith("fc") || a.startsWith("fd") || a.startsWith("fe8") || a.startsWith("fe9") || a.startsWith("fea") || a.startsWith("feb") || a.startsWith("::ffff:127.") || a.startsWith("::ffff:10."));
+  }
+  return false;
+}
+async function assertPublicMediaHost(url) {
+  if (!/^https?:$/.test(url.protocol) || url.username || url.password) throw new Error("Gunakan URL HTTP/HTTPS publik tanpa kredensial.");
+  const host = url.hostname.toLowerCase();
+  if (["localhost", "metadata.google.internal", "metadata", "host.docker.internal"].includes(host) || host.endsWith(".local")) throw new Error("Host tujuan tidak diizinkan.");
+  const records = net.isIP(host) ? [{ address: host }] : await dns.lookup(host, { all: true, verbatim: true });
+  if (!records.length || records.some(r => !isPublicAddress(r.address))) throw new Error("Alamat server privat/internal tidak diizinkan.");
+}
+app.post("/api/downloader/direct", auth, async (req, res) => {
+  try {
+    let current;
+    try { current = new URL(String(req.body?.url || "")); } catch { return res.status(400).json({ error: "URL tidak valid." }); }
+    let upstream;
+    for (let redirects = 0; redirects <= 4; redirects++) {
+      await assertPublicMediaHost(current);
+      upstream = await fetch(current, { redirect: "manual", signal: AbortSignal.timeout(45000), headers: { "User-Agent": "AhoysAudioDownloader/1.0" } });
+      if ([301, 302, 303, 307, 308].includes(upstream.status)) {
+        const location = upstream.headers.get("location");
+        if (!location || redirects === 4) throw new Error("Tautan memiliki terlalu banyak pengalihan.");
+        current = new URL(location, current);
+        continue;
+      }
+      break;
+    }
+    if (!upstream?.ok) throw new Error(`Sumber menolak permintaan (HTTP ${upstream?.status || "unknown"}).`);
+    const type = (upstream.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (!(type.startsWith("audio/") || type.startsWith("video/") || type === "application/octet-stream")) throw new Error("URL bukan direct media file. Masukkan URL file audio/video, bukan URL halaman web.");
+    const maxBytes = 100 * 1024 * 1024;
+    const announced = Number(upstream.headers.get("content-length") || 0);
+    if (announced > maxBytes) throw new Error("Ukuran file melebihi batas 100 MB.");
+    const chunks = []; let total = 0;
+    if (!upstream.body) throw new Error("Sumber tidak mengirim isi file.");
+    const reader = upstream.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) { await reader.cancel(); throw new Error("Ukuran file melebihi batas 100 MB."); }
+      chunks.push(Buffer.from(value));
+    }
+    const bytes = Buffer.concat(chunks, total);
+    let filename = "ahoy-media";
+    const disposition = upstream.headers.get("content-disposition") || "";
+    const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+    if (filenameMatch) filename = decodeURIComponent(filenameMatch[1] || filenameMatch[2]);
+    else filename = decodeURIComponent(path.basename(current.pathname)) || filename;
+    filename = filename.replace(/[\\/\r\n"<>:*?|]/g, "_").slice(0, 150) || "ahoy-media";
+    if (!/\.[a-z0-9]{2,8}$/i.test(filename)) filename += type.startsWith("audio/") ? ".audio" : ".video";
+    res.setHeader("Content-Type", type || "application/octet-stream");
+    res.setHeader("Content-Length", String(bytes.length));
+    res.setHeader("Content-Disposition", `attachment; filename="${filename.replace(/"/g, "")}"`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(bytes);
+  } catch (error) {
+    console.warn("DIRECT DOWNLOADER:", error.message);
+    return res.status(400).json({ error: error.message || "Gagal mengunduh media." });
   }
 });
 
