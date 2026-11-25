@@ -310,7 +310,8 @@ function initAhoyAutoSplit() {
   anchor.insertAdjacentHTML("afterend", `
     <section id="ahoyAutoSplit">
       <h3>AHOY'S AUTO SPLIT</h3>
-      <p>Potong audio panjang menjadi beberapa part berurutan. Pilih durasi setiap part: 1 sampai 6 menit. Semua part otomatis di-convert.</p>
+      <p>Potong audio panjang menjadi beberapa part berurutan. Pilih Split Only untuk membagi tanpa efek audio, atau Split + Convert untuk menerapkan pengaturan converter ke setiap part.</p>
+      <div class="as-row"><label for="ahoySplitMode">Mode proses</label><select id="ahoySplitMode"><option value="split-convert" selected>Split + Convert</option><option value="split-only">Split Only</option></select></div>
       <input id="ahoySplitFile" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus" hidden>
       <div class="as-row">
         <button type="button" id="ahoySplitBrowse">Pilih Audio</button>
@@ -368,7 +369,9 @@ function initAhoyAutoSplit() {
         preservePitch: Boolean($("preservePitch")?.checked),
         gain: $("gain")?.value || "0",
         pitch: $("pitch")?.value || "0",
-        partMinutes: $("ahoySplitMinutes").value
+        partMinutes: $("ahoySplitMinutes").value,
+        splitOnly: $("ahoySplitMode").value === "split-only",
+        sourceFormat: (splitFile.name.split(".").pop() || "mp3").toLowerCase()
       }));
       const token = localStorage.getItem("ahoyToken");
       const response = await fetch(API + "/api/split", {
@@ -1211,6 +1214,7 @@ function initAhoyWorkspaces() {
   addNav("ahoySplitNav", "Split", "#ahoySplitWorkspace");
   addNav("ahoyDirectUploadNav", "Upload To Roblox", "#ahoyDirectUploadWorkspace");
   addNav("ahoyHistoryNav", "Roblox History", "#ahoyHistoryWorkspace");
+  addNav("ahoyDownloaderNav", "Audio Downloader", "#ahoyDownloaderWorkspace");
 
   // Move the existing Auto Split panel intact into its own workspace.
   const splitWorkspace = document.createElement("section");
@@ -1272,17 +1276,29 @@ function initAhoyWorkspaces() {
   `;
   directUploadWorkspace.insertAdjacentElement("afterend", historyWorkspace);
 
+  const downloaderWorkspace = document.createElement("section");
+  downloaderWorkspace.id = "ahoyDownloaderWorkspace";
+  downloaderWorkspace.className = "panel ahoy-workspace";
+  downloaderWorkspace.innerHTML = `<div class="section-head"><div><div class="eyebrow">04 / MEDIA TOOLS</div><h2>Audio Downloader</h2></div><span class="pill">DIRECT MEDIA</span></div><p class="ahoy-history-subtitle">Unduh audio/video dari direct media URL publik, termasuk tautan file dari hosting atau cloud storage yang menyediakan akses file langsung.</p><form id="ahoyDownloaderForm" class="ahoy-downloader-form"><label for="ahoyDownloaderUrl">Media URL</label><input id="ahoyDownloaderUrl" type="url" required maxlength="2048" placeholder="https://example.com/audio.mp3"><button class="gold-btn" id="ahoyDownloaderStart" type="submit">DOWNLOAD MEDIA</button></form><div class="ahoy-downloader-status" id="ahoyDownloaderStatus" aria-live="polite">Hanya direct link file publik. Halaman platform, konten privat, DRM, dan login wall tidak didukung.</div><a id="ahoyDownloaderResult" class="ahoy-downloader-result" hidden>Download file</a>`;
+  historyWorkspace.insertAdjacentElement("afterend", downloaderWorkspace);
+  const downloaderStyle = document.createElement("style");
+  downloaderStyle.textContent = `#ahoyDownloaderWorkspace .ahoy-downloader-form{display:grid;gap:10px;max-width:760px;margin-top:22px}#ahoyDownloaderWorkspace label{color:#cbd6e5;font-size:12px}#ahoyDownloaderWorkspace input{width:100%;box-sizing:border-box;min-height:48px;padding:12px 15px;border-radius:14px;border:1px solid var(--line,#ffffff24);background:#090d14;color:#f2f5fa}#ahoyDownloaderWorkspace button{justify-self:start;padding:13px 20px}.ahoy-downloader-status{margin-top:16px;color:#aab5c5;font-size:12px;line-height:1.7}.ahoy-downloader-result{display:inline-block;margin-top:12px;color:#dce9f7;text-decoration:none;border:1px solid #aebed344;padding:11px 16px;border-radius:12px}`;
+  document.head.appendChild(downloaderStyle);
+  $("ahoyDownloaderForm").addEventListener("submit", downloadDirectMedia);
+
   const styles = document.createElement("style");
   styles.id = "ahoyWorkspaceStyles";
   styles.textContent = `
     .ahoy-workspace{display:none;max-width:1500px;margin:28px auto}
-    body.ahoy-view-split #converter,body.ahoy-view-split #ahoyDirectUploadWorkspace,body.ahoy-view-split #ahoyHistoryWorkspace,body.ahoy-view-split #membership{display:none!important}
+    body.ahoy-view-split #converter,body.ahoy-view-split #ahoyDirectUploadWorkspace,body.ahoy-view-split #ahoyHistoryWorkspace,body.ahoy-view-split #ahoyDownloaderWorkspace,body.ahoy-view-split #membership{display:none!important}
     body.ahoy-view-split #ahoySplitWorkspace{display:block!important}
-    body.ahoy-view-directupload #converter,body.ahoy-view-directupload #ahoySplitWorkspace,body.ahoy-view-directupload #ahoyHistoryWorkspace,body.ahoy-view-directupload #membership{display:none!important}
+    body.ahoy-view-directupload #converter,body.ahoy-view-directupload #ahoySplitWorkspace,body.ahoy-view-directupload #ahoyHistoryWorkspace,body.ahoy-view-directupload #ahoyDownloaderWorkspace,body.ahoy-view-directupload #membership{display:none!important}
     body.ahoy-view-directupload #ahoyDirectUploadWorkspace{display:block!important}
-    body.ahoy-view-history #converter,body.ahoy-view-history #ahoySplitWorkspace,body.ahoy-view-history #ahoyDirectUploadWorkspace,body.ahoy-view-history #membership{display:none!important}
+    body.ahoy-view-history #converter,body.ahoy-view-history #ahoySplitWorkspace,body.ahoy-view-history #ahoyDirectUploadWorkspace,body.ahoy-view-history #ahoyDownloaderWorkspace,body.ahoy-view-history #membership{display:none!important}
     body.ahoy-view-history #ahoyHistoryWorkspace{display:block!important}
-    body.ahoy-view-converter #ahoySplitWorkspace,body.ahoy-view-converter #ahoyDirectUploadWorkspace,body.ahoy-view-converter #ahoyHistoryWorkspace{display:none!important}
+    body.ahoy-view-downloader #converter,body.ahoy-view-downloader #ahoySplitWorkspace,body.ahoy-view-downloader #ahoyDirectUploadWorkspace,body.ahoy-view-downloader #ahoyHistoryWorkspace,body.ahoy-view-downloader #membership{display:none!important}
+    body.ahoy-view-downloader #ahoyDownloaderWorkspace{display:block!important}
+    body.ahoy-view-converter #ahoySplitWorkspace,body.ahoy-view-converter #ahoyDirectUploadWorkspace,body.ahoy-view-converter #ahoyHistoryWorkspace,body.ahoy-view-converter #ahoyDownloaderWorkspace{display:none!important}
     .ahoy-history-subtitle{color:#aaa;font-size:13px;margin:0 0 18px}
     .ahoy-history-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
     .ahoy-history-summary>div{padding:15px;border:1px solid rgba(180,160,220,.16);border-radius:12px;background:linear-gradient(145deg,#171522,#0d0c13);display:grid;gap:5px}
@@ -1322,7 +1338,7 @@ function initAhoyWorkspaces() {
   document.head.appendChild(styles);
 
   const showView = view => {
-    document.body.classList.remove("ahoy-view-converter","ahoy-view-split","ahoy-view-directupload","ahoy-view-history");
+    document.body.classList.remove("ahoy-view-converter","ahoy-view-split","ahoy-view-directupload","ahoy-view-history","ahoy-view-downloader");
     document.body.classList.add("ahoy-view-" + view);
     if (view === "history") loadAhoyRobloxHistory();
     if (view === "directupload") refreshDirectRobloxConnection();
@@ -1330,6 +1346,7 @@ function initAhoyWorkspaces() {
   $("ahoySplitNav").addEventListener("click", () => showView("split"));
   $("ahoyDirectUploadNav").addEventListener("click", () => showView("directupload"));
   $("ahoyHistoryNav").addEventListener("click", () => showView("history"));
+  $("ahoyDownloaderNav").addEventListener("click", () => showView("downloader"));
   const converterNav = nav.querySelector('a[href="#converter"]');
   converterNav?.addEventListener("click", () => showView("converter"));
   $("ahoyHistoryRefresh").addEventListener("click", loadAhoyRobloxHistory);
@@ -1338,9 +1355,11 @@ function initAhoyWorkspaces() {
     if (location.hash === "#ahoySplitWorkspace") showView("split");
     else if (location.hash === "#ahoyDirectUploadWorkspace") showView("directupload");
     else if (location.hash === "#ahoyHistoryWorkspace") showView("history");
+    else if (location.hash === "#ahoyDownloaderWorkspace") showView("downloader");
     else if (location.hash === "#converter") showView("converter");
   });
   if (location.hash === "#ahoyHistoryWorkspace") showView("history");
+  else if (location.hash === "#ahoyDownloaderWorkspace") showView("downloader");
   else if (location.hash === "#ahoyDirectUploadWorkspace") showView("directupload");
   else if (location.hash === "#ahoySplitWorkspace") showView("split");
   else showView("converter");
@@ -1354,6 +1373,23 @@ function initAhoyWorkspaces() {
 }
 
 
+
+async function downloadDirectMedia(event) {
+  event.preventDefault();
+  const button = $("ahoyDownloaderStart"), status = $("ahoyDownloaderStatus"), result = $("ahoyDownloaderResult");
+  result.hidden = true; button.disabled = true; status.textContent = "Memeriksa tautan dan mengambil file...";
+  try {
+    const token = localStorage.getItem("ahoyToken");
+    const response = await fetch(API + "/api/downloader/direct", { method:"POST", headers:{"Content-Type":"application/json", ...(token?{Authorization:"Bearer "+token}:{})}, body:JSON.stringify({url:$("ahoyDownloaderUrl").value.trim()}) });
+    if (!response.ok) { const data = await response.json().catch(()=>({})); throw new Error(data.error || "Download gagal. Gunakan direct media URL publik."); }
+    const blob = await response.blob();
+    const cd = response.headers.get("content-disposition") || "";
+    const match = cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+    const filename = decodeURIComponent(match?.[1] || match?.[2] || "ahoy-media-download");
+    const objectUrl = URL.createObjectURL(blob); result.href = objectUrl; result.download = filename; result.textContent = `Simpan ${filename} · ${(blob.size/1048576).toFixed(2)} MB`; result.hidden = false; result.click();
+    status.textContent = "File berhasil diambil. Jika unduhan tidak dimulai otomatis, klik tautan simpan di bawah.";
+  } catch(error) { status.textContent = error.message; } finally { button.disabled = false; }
+}
 
 function initAhoyDirectUpload() {
   const input = $("aruDirectFiles");
