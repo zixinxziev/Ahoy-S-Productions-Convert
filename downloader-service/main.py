@@ -153,8 +153,14 @@ def run_download(job_id: str, url: str, output_format: str):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "AHOY Universal Downloader", "engine": "yt-dlp + FFmpeg"}
+    import yt_dlp
 
+    return {
+        "ok": True,
+        "service": "AHOY Universal Downloader",
+        "engine": "yt-dlp + FFmpeg",
+        "yt_dlp_version": yt_dlp.version.__version__
+    }
 
 @app.post("/internal/jobs", status_code=202)
 async def create_job(payload: CreateJob, x_ahoy_service_key: str | None = Header(default=None)):
