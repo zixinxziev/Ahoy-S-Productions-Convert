@@ -1,26 +1,36 @@
 
-FROM python:3.12-slim
+FROM node:22-bookworm-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-venv \
     ffmpeg \
     ca-certificates \
-    curl \
+    git \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install BgUtils PO Token Provider
-RUN curl -fsSL https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/download/2.0.2/bgutil-ytdlp-pot-provider-2.0.2.tgz \
-    -o /tmp/bgutil-provider.tgz
+RUN git clone --depth 1 --branch 2.0.2 \
+    https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git \
+    /opt/bgutil \
+    && cd /opt/bgutil/server \
+    && npm ci \
+    && npx tsc
 
 COPY main.py .
+COPY supervisord.conf /etc/supervisor/conf.d/ahoy.conf
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "echo 'Provider installation needs to be configured before startup'; uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
+CMD ["supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
