@@ -185,11 +185,33 @@ def run_download(job_id: str, url: str, output_format: str):
             completed_at=time.time(),
         )
 
+    
     except Exception as exc:
-        message = str(exc).strip() or "Download failed."
+        # Simpan detail teknis hanya di server log
+        print(f"[AHOY DOWNLOADER ERROR] {url}: {exc}", flush=True)
 
-        if len(message) > 450:
-            message = message[:450]
+        # Tentukan nama platform
+        host = (urlparse(url).hostname or "").lower()
+
+        if host == "youtu.be" or host.endswith("youtube.com"):
+            platform = "YouTube"
+        elif host.endswith("instagram.com"):
+            platform = "Instagram"
+        elif host.endswith("tiktok.com"):
+            platform = "TikTok"
+        elif host.endswith("soundcloud.com"):
+            platform = "SoundCloud"
+        elif host.endswith("facebook.com") or host.endswith("fb.watch"):
+            platform = "Facebook"
+        elif host.endswith("x.com") or host.endswith("twitter.com"):
+            platform = "X"
+        else:
+            platform = "Platform"
+
+        message = (
+            f"ERROR [ {platform} ] saat ini belum bisa digunakan, "
+            "coba gunakan platform lain."
+        )
 
         state.update(
             status="failed",
@@ -199,6 +221,7 @@ def run_download(job_id: str, url: str, output_format: str):
         )
 
         shutil.rmtree(job_dir, ignore_errors=True)
+
 
 
 
