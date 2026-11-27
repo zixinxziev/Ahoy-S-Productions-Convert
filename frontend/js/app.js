@@ -1297,7 +1297,7 @@ function initAhoyWorkspaces() {
     </form>
     <div class="ahoy-downloader-usage" id="ahoyDownloaderUsage">Login untuk melihat kuota downloader.</div>
     <div class="ahoy-downloader-progress-wrap" id="ahoyDownloaderProgressWrap" hidden><div class="ahoy-downloader-progress-head"><span id="ahoyDownloaderProgressLabel">Preparing download...</span><strong id="ahoyDownloaderProgressValue">0%</strong></div><progress id="ahoyDownloaderProgress" max="100" value="0"></progress></div>
-    <div class="ahoy-downloader-status" id="ahoyDownloaderStatus" aria-live="polite">Mendukung platform yang kompatibel dengan extractor yt-dlp serta direct media URL. Konten privat, DRM, paywall, dan login wall tidak didukung.</div>
+    <div class="ahoy-downloader-status" id="ahoyDownloaderStatus" aria-live="polite">Mendukung berbagai platform yang kompatibel. YouTube sementara belum tersedia.</div>
     <div class="ahoy-downloader-meta" id="ahoyDownloaderMeta" hidden></div>
     <a id="ahoyDownloaderResult" class="ahoy-downloader-result" hidden>Download file</a>
   `;
