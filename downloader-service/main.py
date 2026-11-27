@@ -90,26 +90,38 @@ def run_download(job_id: str, url: str, output_format: str):
             elif data.get("status") == "finished":
                 state.update(status="processing", progress=99)
 
-        options = {
-            "format": "bestaudio/best",
-            "outtmpl": str(job_dir / "%(id)s.%(ext)s"),
-            "noplaylist": True,
-            "quiet": False,
-            "no_warnings": False,
-            "verbose": True,
-            "no_color": True,
-            "restrictfilenames": True,
-            "socket_timeout": 25,
-            "retries": 2,
-            "fragment_retries": 2,
-            "extractor_retries": 2,
-            "file_access_retries": 1,
-            "max_filesize": MAX_FILE_BYTES,
-            "progress_hooks": [progress_hook],
-            "postprocessor_hooks": [postprocessor_hook],
-            "overwrites": True,
-            "continuedl": False,
-        }
+       
+options = {
+    "format": "bestaudio/best",
+    "outtmpl": str(job_dir / "%(id)s.%(ext)s"),
+    "noplaylist": True,
+
+    # Diagnostic logging
+    "quiet": False,
+    "no_warnings": False,
+    "verbose": True,
+    "no_color": True,
+
+    # Enable Node.js 22 for YouTube JavaScript challenges
+    "js_runtimes": {"node": {}},
+
+    # Downloader settings
+    "restrictfilenames": True,
+    "socket_timeout": 25,
+    "retries": 3,
+    "fragment_retries": 3,
+    "extractor_retries": 2,
+    "file_access_retries": 1,
+    "max_filesize": MAX_FILE_BYTES,
+
+    # Existing hooks
+    "progress_hooks": [progress_hook],
+    "postprocessor_hooks": [postprocessor_hook],
+
+    "overwrites": True,
+    "continuedl": False,
+}
+
         if output_format != "original":
             options["postprocessors"] = [{
                 "key": "FFmpegExtractAudio",
