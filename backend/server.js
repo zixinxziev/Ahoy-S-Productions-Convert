@@ -116,8 +116,24 @@ app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith("/api/downloader/jobs/") || req.path === "/api/downloader/usage"
 }));
+
+const downloaderPollLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 45,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.user?.username || req.ip)
+});
+const downloaderCreateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.user?.username || req.ip)
+});
 
 // ===============================
 // MULTER UPLOAD
@@ -1338,76 +1354,237 @@ app.get("/api/roblox/history", auth, requiredAuth, async (req, res) => {
 });
 
 // ===============================
-// DIRECT MEDIA DOWNLOADER (PUBLIC DIRECT LINKS ONLY)
+// AHOY UNIVERSAL DOWNLOADER (DEDICATED SERVICE)
 // ===============================
-const dns = require("dns").promises;
-const net = require("net");
-function isPublicAddress(address) {
-  if (net.isIP(address) === 4) {
-    const p = address.split(".").map(Number);
-    return !(p[0] === 10 || p[0] === 127 || p[0] === 0 || p[0] === 169 && p[1] === 254 || p[0] === 172 && p[1] >= 16 && p[1] <= 31 || p[0] === 192 && p[1] === 168 || p[0] >= 224);
-  }
-  if (net.isIP(address) === 6) {
-    const a = address.toLowerCase();
-    return !(a === "::1" || a === "::" || a.startsWith("fc") || a.startsWith("fd") || a.startsWith("fe8") || a.startsWith("fe9") || a.startsWith("fea") || a.startsWith("feb") || a.startsWith("::ffff:127.") || a.startsWith("::ffff:10."));
-  }
-  return false;
+function downloaderServiceConfig() {
+  const base = String(process.env.DOWNLOADER_SERVICE_URL || "").replace(/\/+$/, "");
+  const secret = String(process.env.DOWNLOADER_SERVICE_SECRET || "");
+  if (!base || !secret) throw new Error("Universal Downloader belum dikonfigurasi. Isi DOWNLOADER_SERVICE_URL dan DOWNLOADER_SERVICE_SECRET.");
+  return { base, secret };
 }
-async function assertPublicMediaHost(url) {
-  if (!/^https?:$/.test(url.protocol) || url.username || url.password) throw new Error("Gunakan URL HTTP/HTTPS publik tanpa kredensial.");
-  const host = url.hostname.toLowerCase();
-  if (["localhost", "metadata.google.internal", "metadata", "host.docker.internal"].includes(host) || host.endsWith(".local")) throw new Error("Host tujuan tidak diizinkan.");
-  const records = net.isIP(host) ? [{ address: host }] : await dns.lookup(host, { all: true, verbatim: true });
-  if (!records.length || records.some(r => !isPublicAddress(r.address))) throw new Error("Alamat server privat/internal tidak diizinkan.");
+
+async function downloaderServiceFetch(route, options = {}) {
+  const { base, secret } = downloaderServiceConfig();
+  const response = await fetch(base + route, {
+    ...options,
+    headers: {
+      "X-Ahoy-Service-Key": secret,
+      ...(options.headers || {})
+    },
+    signal: AbortSignal.timeout(options.timeout || 30000)
+  });
+  return response;
 }
-app.post("/api/downloader/direct", auth, async (req, res) => {
+
+function downloaderErrorMessage(data, fallback) {
+  return String(data?.detail || data?.error || fallback).slice(0, 500);
+}
+
+app.get("/api/downloader/usage", auth, requiredAuth, downloaderPollLimiter, async (req, res) => {
   try {
-    let current;
-    try { current = new URL(String(req.body?.url || "")); } catch { return res.status(400).json({ error: "URL tidak valid." }); }
-    let upstream;
-    for (let redirects = 0; redirects <= 4; redirects++) {
-      await assertPublicMediaHost(current);
-      upstream = await fetch(current, { redirect: "manual", signal: AbortSignal.timeout(45000), headers: { "User-Agent": "AhoysAudioDownloader/1.0" } });
-      if ([301, 302, 303, 307, 308].includes(upstream.status)) {
-        const location = upstream.headers.get("location");
-        if (!location || redirects === 4) throw new Error("Tautan memiliki terlalu banyak pengalihan.");
-        current = new URL(location, current);
-        continue;
-      }
-      break;
-    }
-    if (!upstream?.ok) throw new Error(`Sumber menolak permintaan (HTTP ${upstream?.status || "unknown"}).`);
-    const type = (upstream.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-    if (!(type.startsWith("audio/") || type.startsWith("video/") || type === "application/octet-stream")) throw new Error("URL bukan direct media file. Masukkan URL file audio/video, bukan URL halaman web.");
-    const maxBytes = 100 * 1024 * 1024;
-    const announced = Number(upstream.headers.get("content-length") || 0);
-    if (announced > maxBytes) throw new Error("Ukuran file melebihi batas 100 MB.");
-    const chunks = []; let total = 0;
-    if (!upstream.body) throw new Error("Sumber tidak mengirim isi file.");
-    const reader = upstream.body.getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > maxBytes) { await reader.cancel(); throw new Error("Ukuran file melebihi batas 100 MB."); }
-      chunks.push(Buffer.from(value));
-    }
-    const bytes = Buffer.concat(chunks, total);
-    let filename = "ahoy-media";
-    const disposition = upstream.headers.get("content-disposition") || "";
-    const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
-    if (filenameMatch) filename = decodeURIComponent(filenameMatch[1] || filenameMatch[2]);
-    else filename = decodeURIComponent(path.basename(current.pathname)) || filename;
-    filename = filename.replace(/[\\/\r\n"<>:*?|]/g, "_").slice(0, 150) || "ahoy-media";
-    if (!/\.[a-z0-9]{2,8}$/i.test(filename)) filename += type.startsWith("audio/") ? ".audio" : ".video";
-    res.setHeader("Content-Type", type || "application/octet-stream");
-    res.setHeader("Content-Length", String(bytes.length));
-    res.setHeader("Content-Disposition", `attachment; filename="${filename.replace(/"/g, "")}"`);
-    res.setHeader("Cache-Control", "no-store");
-    return res.send(bytes);
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Member account not found" });
+
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+    const staleBefore = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { error: staleError } = await supabase
+      .from("downloader_jobs")
+      .update({ status: "failed", error_message: "Reservation expired." })
+      .eq("username", user.username)
+      .in("status", ["pending", "processing", "ready"])
+      .lt("created_at", staleBefore);
+    if (staleError) throw staleError;
+
+    const { count: used, error: usedError } = await supabase
+      .from("downloader_jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("username", user.username)
+      .eq("status", "completed")
+      .gte("completed_at", start.toISOString());
+    if (usedError) throw usedError;
+
+    const { count: active, error: activeError } = await supabase
+      .from("downloader_jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("username", user.username)
+      .in("status", ["pending", "processing", "ready"]);
+    if (activeError) throw activeError;
+
+    const unlimited = user.membership === "unlimited";
+    const dailyLimit = unlimited ? null : 10;
+    const resetAt = new Date();
+    resetAt.setUTCHours(24, 0, 0, 0);
+    return res.json({
+      username: user.username,
+      membership: user.membership,
+      unlimited,
+      daily_limit: dailyLimit,
+      used: used || 0,
+      active: active || 0,
+      remaining: unlimited ? null : Math.max(0, 10 - (used || 0)),
+      concurrency_limit: unlimited ? 3 : 1,
+      reset_at: unlimited ? null : resetAt.toISOString()
+    });
   } catch (error) {
-    console.warn("DIRECT DOWNLOADER:", error.message);
-    return res.status(400).json({ error: error.message || "Gagal mengunduh media." });
+    console.error("DOWNLOADER USAGE ERROR:", error);
+    return res.status(500).json({ error: "Unable to load downloader usage. Run the downloader SQL migration first." });
+  }
+});
+
+app.post("/api/downloader/jobs", auth, requiredAuth, downloaderCreateLimiter, async (req, res) => {
+  try {
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Member account not found" });
+
+    const rawUrl = String(req.body?.url || "").trim();
+    let parsed;
+    try { parsed = new URL(rawUrl); } catch { return res.status(400).json({ error: "Masukkan URL media yang valid." }); }
+    if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
+      return res.status(400).json({ error: "Hanya URL HTTP/HTTPS publik yang didukung." });
+    }
+
+    const format = String(req.body?.format || "mp3").toLowerCase();
+    if (!["mp3", "wav", "m4a", "opus", "original"].includes(format)) {
+      return res.status(400).json({ error: "Format output tidak didukung." });
+    }
+
+    // The database function locks the account row and reserves a slot atomically.
+    const { data: reservation, error: reserveError } = await supabase.rpc(
+      "reserve_downloader_job",
+      { p_username: user.username }
+    );
+    if (reserveError) throw reserveError;
+    const slot = Array.isArray(reservation) ? reservation[0] : reservation;
+    if (!slot?.allowed) {
+      if (slot?.reason === "daily_limit") {
+        return res.status(429).json({ error: "Kuota FREE habis: 10 download berhasil per hari. Upgrade ke UNLIMITED atau tunggu reset harian." });
+      }
+      if (slot?.reason === "concurrency_limit") {
+        return res.status(429).json({ error: user.membership === "unlimited" ? "Maksimal 3 download dapat berjalan bersamaan." : "Akun FREE hanya dapat menjalankan 1 download dalam satu waktu." });
+      }
+      return res.status(403).json({ error: "Akun tidak dapat memulai download." });
+    }
+
+    const jobId = slot.job_id;
+    try {
+      const serviceResponse = await downloaderServiceFetch("/internal/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: jobId, url: parsed.toString(), format }),
+        timeout: 15000
+      });
+      const serviceData = await serviceResponse.json().catch(() => ({}));
+      if (!serviceResponse.ok) throw new Error(downloaderErrorMessage(serviceData, "Downloader service rejected the job."));
+      await supabase.from("downloader_jobs").update({ status: "processing" }).eq("id", jobId);
+      return res.status(202).json({ job_id: jobId, status: serviceData.status || "queued", usage: { membership: user.membership } });
+    } catch (error) {
+      await supabase.from("downloader_jobs").update({ status: "failed", error_message: String(error.message).slice(0, 500) }).eq("id", jobId);
+      throw error;
+    }
+  } catch (error) {
+    console.error("DOWNLOADER CREATE ERROR:", error);
+    const message = error.message || "Downloader service unavailable.";
+    const status = /belum dikonfigurasi|not configured/i.test(message) ? 503 : 502;
+    return res.status(status).json({ error: message });
+  }
+});
+
+app.get("/api/downloader/jobs/:id", auth, requiredAuth, downloaderPollLimiter, async (req, res) => {
+  try {
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Member account not found" });
+    const { data: row, error: rowError } = await supabase
+      .from("downloader_jobs")
+      .select("id,username,status,output_filename,error_message,created_at,completed_at")
+      .eq("id", req.params.id)
+      .eq("username", user.username)
+      .maybeSingle();
+    if (rowError) throw rowError;
+    if (!row) return res.status(404).json({ error: "Download job tidak ditemukan." });
+
+    if (row.status === "completed" || row.status === "failed") {
+      return res.json({ job_id: row.id, status: row.status, filename: row.output_filename, error: row.error_message, progress: row.status === "completed" ? 100 : 0 });
+    }
+
+    const serviceResponse = await downloaderServiceFetch("/internal/jobs/" + encodeURIComponent(row.id), { timeout: 15000 });
+    const data = await serviceResponse.json().catch(() => ({}));
+    if (!serviceResponse.ok) {
+      if (serviceResponse.status === 404) {
+        await supabase.from("downloader_jobs").update({ status: "failed", error_message: "Downloader job expired after service restart. Please retry." }).eq("id", row.id).eq("username", user.username);
+        return res.json({ job_id: row.id, status: "failed", progress: 0, error: "Job expired after downloader restart. Please retry." });
+      }
+      throw new Error(downloaderErrorMessage(data, "Tidak dapat membaca status download."));
+    }
+    if (data.status === "completed") {
+      const { error } = await supabase.from("downloader_jobs").update({
+        status: "ready",
+        output_filename: String(data.filename || "").slice(0, 240),
+        error_message: null
+      }).eq("id", row.id).eq("username", user.username).in("status", ["pending", "processing", "ready"]);
+      if (error) throw error;
+    } else if (data.status === "failed") {
+      await supabase.from("downloader_jobs").update({
+        status: "failed",
+        error_message: String(data.error || "Download failed").slice(0, 500)
+      }).eq("id", row.id).eq("username", user.username).neq("status", "completed");
+    } else if (row.status !== "processing") {
+      await supabase.from("downloader_jobs").update({ status: "processing" }).eq("id", row.id);
+    }
+    return res.json({
+      job_id: row.id,
+      status: data.status || row.status,
+      progress: Math.max(0, Math.min(100, Number(data.progress) || 0)),
+      title: data.title || "",
+      extractor: data.extractor || "",
+      filename: data.filename || "",
+      error: data.error || ""
+    });
+  } catch (error) {
+    console.error("DOWNLOADER STATUS ERROR:", error);
+    return res.status(502).json({ error: error.message || "Unable to check download status." });
+  }
+});
+
+app.get("/api/downloader/jobs/:id/file", auth, requiredAuth, downloaderPollLimiter, async (req, res) => {
+  try {
+    const user = await getUser(req);
+    if (!user) return res.status(404).json({ error: "Member account not found" });
+    const { data: row, error } = await supabase
+      .from("downloader_jobs")
+      .select("id,username,status,output_filename")
+      .eq("id", req.params.id)
+      .eq("username", user.username)
+      .maybeSingle();
+    if (error) throw error;
+    if (!row || !["ready", "completed"].includes(row.status)) return res.status(404).json({ error: "File belum siap atau tidak ditemukan." });
+
+    const upstream = await downloaderServiceFetch("/internal/jobs/" + encodeURIComponent(row.id) + "/file", { timeout: 60000 });
+    if (!upstream.ok) {
+      const data = await upstream.json().catch(() => ({}));
+      return res.status(upstream.status).json({ error: downloaderErrorMessage(data, "File download tidak tersedia.") });
+    }
+    const bytes = Buffer.from(await upstream.arrayBuffer());
+    const filename = String(upstream.headers.get("content-disposition") || "").match(/filename="?([^";]+)"?/i)?.[1] || row.output_filename || "ahoy-download";
+    res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/octet-stream");
+    res.setHeader("Content-Length", String(bytes.length));
+    res.setHeader("Content-Disposition", `attachment; filename="${String(filename).replace(/["\\r\\n]/g, "_")}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.send(bytes);
+    res.once("finish", () => {
+      if (row.status !== "completed") {
+        supabase.from("downloader_jobs").update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          error_message: null
+        }).eq("id", row.id).eq("username", user.username).eq("status", "ready")
+          .then(({ error: updateError }) => { if (updateError) console.error("DOWNLOADER COMPLETE USAGE UPDATE:", updateError); });
+      }
+    });
+    return;
+  } catch (error) {
+    console.error("DOWNLOADER FILE ERROR:", error);
+    return res.status(502).json({ error: error.message || "Unable to retrieve downloaded file." });
   }
 });
 
