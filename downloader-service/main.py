@@ -67,20 +67,25 @@ def safe_filename(value: str) -> str:
     return (value[:150] or "ahoy-audio")
 
 
+
 def run_download(job_id: str, url: str, output_format: str):
     job_dir = OUTPUT_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     state = JOBS[job_id]
     state.update(status="extracting", progress=0, error="", title="", extractor="")
+
     try:
         def progress_hook(data):
             if data.get("status") == "downloading":
                 total = data.get("total_bytes") or data.get("total_bytes_estimate") or 0
                 downloaded = data.get("downloaded_bytes") or 0
+
                 if downloaded > MAX_FILE_BYTES:
                     raise RuntimeError("The downloaded file exceeds the configured size limit.")
+
                 pct = min(95, int(downloaded * 100 / total)) if total else 0
                 state.update(status="downloading", progress=pct)
+
             elif data.get("status") == "finished":
                 state.update(status="processing", progress=max(95, state.get("progress", 0)))
 
@@ -90,37 +95,37 @@ def run_download(job_id: str, url: str, output_format: str):
             elif data.get("status") == "finished":
                 state.update(status="processing", progress=99)
 
-       
-options = {
-    "format": "bestaudio/best",
-    "outtmpl": str(job_dir / "%(id)s.%(ext)s"),
-    "noplaylist": True,
+        # yt-dlp configuration
+        options = {
+            "format": "bestaudio/best",
+            "outtmpl": str(job_dir / "%(id)s.%(ext)s"),
+            "noplaylist": True,
 
-    # Diagnostic logging
-    "quiet": False,
-    "no_warnings": False,
-    "verbose": True,
-    "no_color": True,
+            # Diagnostic logging
+            "quiet": False,
+            "no_warnings": False,
+            "verbose": True,
+            "no_color": True,
 
-    # Enable Node.js 22 for YouTube JavaScript challenges
-    "js_runtimes": {"node": {}},
+            # Node.js 22 for YouTube JavaScript challenges
+            "js_runtimes": {"node": {}},
 
-    # Downloader settings
-    "restrictfilenames": True,
-    "socket_timeout": 25,
-    "retries": 3,
-    "fragment_retries": 3,
-    "extractor_retries": 2,
-    "file_access_retries": 1,
-    "max_filesize": MAX_FILE_BYTES,
+            # Downloader settings
+            "restrictfilenames": True,
+            "socket_timeout": 25,
+            "retries": 3,
+            "fragment_retries": 3,
+            "extractor_retries": 2,
+            "file_access_retries": 1,
+            "max_filesize": MAX_FILE_BYTES,
 
-    # Existing hooks
-    "progress_hooks": [progress_hook],
-    "postprocessor_hooks": [postprocessor_hook],
+            # Existing hooks
+            "progress_hooks": [progress_hook],
+            "postprocessor_hooks": [postprocessor_hook],
 
-    "overwrites": True,
-    "continuedl": False,
-}
+            "overwrites": True,
+            "continuedl": False,
+        }
 
         if output_format != "original":
             options["postprocessors"] = [{
@@ -130,24 +135,47 @@ options = {
             }]
 
         state.update(status="extracting", progress=0)
+
         with YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=False)
+
             if not info:
                 raise RuntimeError("The platform did not return media information.")
+
             if info.get("_type") in ("playlist", "multi_video"):
-                raise RuntimeError("Playlist URLs are not enabled in this version. Please use a single track or video URL.")
+                raise RuntimeError(
+                    "Playlist URLs are not enabled in this version. Please use a single track or video URL."
+                )
+
             title = safe_filename(info.get("title") or "ahoy-audio")
-            extractor = str(info.get("extractor_key") or info.get("extractor") or "media")[:80]
-            state.update(title=title, extractor=extractor, status="downloading", progress=0)
+            extractor = str(
+                info.get("extractor_key") or info.get("extractor") or "media"
+            )[:80]
+
+            state.update(
+                title=title,
+                extractor=extractor,
+                status="downloading",
+                progress=0,
+            )
+
             ydl.download([url])
 
-        candidates = [p for p in job_dir.iterdir() if p.is_file() and not p.name.endswith((".part", ".ytdl"))]
+        candidates = [
+            p for p in job_dir.iterdir()
+            if p.is_file() and not p.name.endswith((".part", ".ytdl"))
+        ]
+
         if not candidates:
             raise RuntimeError("The extractor completed without producing a media file.")
+
         output = max(candidates, key=lambda p: p.stat().st_size)
+
         if output.stat().st_size > MAX_FILE_BYTES:
             raise RuntimeError("The downloaded file exceeds the configured size limit.")
+
         display_name = safe_filename(title) + output.suffix.lower()
+
         state.update(
             status="completed",
             progress=100,
@@ -156,12 +184,22 @@ options = {
             error="",
             completed_at=time.time(),
         )
+
     except Exception as exc:
         message = str(exc).strip() or "Download failed."
+
         if len(message) > 450:
             message = message[:450]
-        state.update(status="failed", progress=0, error=message, completed_at=time.time())
+
+        state.update(
+            status="failed",
+            progress=0,
+            error=message,
+            completed_at=time.time(),
+        )
+
         shutil.rmtree(job_dir, ignore_errors=True)
+
 
 
 @app.get("/health")
