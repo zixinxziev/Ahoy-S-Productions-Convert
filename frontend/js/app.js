@@ -310,8 +310,10 @@ function initAhoyAutoSplit() {
   anchor.insertAdjacentHTML("afterend", `
     <section id="ahoyAutoSplit">
       <h3>AHOY'S AUTO SPLIT</h3>
-      <p>Potong audio panjang menjadi beberapa part berurutan. Pilih Split Only untuk membagi tanpa efek audio, atau Split + Convert untuk menerapkan pengaturan converter ke setiap part.</p>
-      <div class="as-row"><label for="ahoySplitMode">Mode proses</label><select id="ahoySplitMode"><option value="split-convert" selected>Split + Convert</option><option value="split-only">Split Only</option></select></div>
+      <p>Potong audio panjang menjadi beberapa part. Kedua mode menerapkan Fade In dan Fade Out otomatis; Split + Convert juga menerapkan pengaturan format converter.</p>
+      <div class="as-row"><label for="ahoySplitMode">Mode</label><select id="ahoySplitMode"><option value="split-convert" selected>Split + Convert</option><option value="split-only">Split Only</option></select>
+        <label for="ahoySplitBaseName">Nama hasil</label><input id="ahoySplitBaseName" type="text" maxlength="80" placeholder="Otomatis dari nama file" style="min-width:210px;border:1px solid rgba(218,183,112,.4);border-radius:9px;padding:10px 13px;background:#171717;color:#f0d69b">
+        <label for="ahoySplitFade">Fade In/Out</label><select id="ahoySplitFade"><option value="1">1 detik</option><option value="2">2 detik</option><option value="3" selected>3 detik</option><option value="5">5 detik</option><option value="8">8 detik</option></select></div>
       <input id="ahoySplitFile" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus" hidden>
       <div class="as-row">
         <button type="button" id="ahoySplitBrowse">Pilih Audio</button>
@@ -341,6 +343,7 @@ function initAhoyAutoSplit() {
     splitFile = event.target.files?.[0] || null;
     $("ahoySplitFileName").textContent = splitFile ? `${splitFile.name} · ${(splitFile.size / 1048576).toFixed(2)} MB` : "Belum ada file dipilih";
     splitResults = [];
+    $("ahoySplitBaseName").value = splitFile ? splitFile.name.replace(/\.[^.]+$/, "") : "";
     $("ahoySplitParts").innerHTML = "";
     $("ahoySplitZip").disabled = true;
     $("ahoySplitStatus").textContent = "";
@@ -371,6 +374,8 @@ function initAhoyAutoSplit() {
         pitch: $("pitch")?.value || "0",
         partMinutes: $("ahoySplitMinutes").value,
         splitOnly: $("ahoySplitMode").value === "split-only",
+        baseName: $("ahoySplitBaseName").value.trim(),
+        fadeSeconds: Number($("ahoySplitFade").value || 3),
         sourceFormat: (splitFile.name.split(".").pop() || "mp3").toLowerCase()
       }));
       const token = localStorage.getItem("ahoyToken");
@@ -382,7 +387,7 @@ function initAhoyAutoSplit() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Auto Split failed");
       splitResults = data.files || [];
-      $("ahoySplitStatus").textContent = `Selesai · ${data.partCount} part · ${(data.duration / 60).toFixed(2)} menit total`;
+      $("ahoySplitStatus").textContent = `Selesai · ${data.partCount} part · Fade In/Out ${data.appliedEffects?.fadeIn || 0}s · ${(data.duration / 60).toFixed(2)} menit total`;
       $("ahoySplitParts").innerHTML = "";
       splitResults.forEach(file => {
         const item = document.createElement("div");
@@ -411,7 +416,7 @@ function initAhoyAutoSplit() {
 
         const previewLabel = document.createElement("div");
         previewLabel.className = "as-preview-label";
-        previewLabel.textContent = "PREVIEW AUDIO HASIL CONVERT";
+        previewLabel.textContent = "PREVIEW AUDIO PART · FADE IN / FADE OUT";
         const preview = document.createElement("audio");
         preview.className = "as-preview";
         preview.controls = true;
@@ -455,7 +460,7 @@ function initAhoyAutoSplit() {
       if (status) status.textContent = `Uploaded · Audio ID: ${result.assetId}`;
       $("ahoySplitStatus").textContent = `Roblox upload ${completed}/${splitResults.length} selesai...`;
     }
-    if (completed === splitResults.length) $("ahoySplitStatus").textContent = `Semua ${completed} part berhasil dikirim ke Roblox.`;
+    if (completed === splitResults.length) $("ahoySplitStatus").textContent = `Semua ${completed} part berhasil dikirim ke Roblox secara berurutan.`;
     button.disabled = false;
   };
 
