@@ -1284,12 +1284,44 @@ function initAhoyWorkspaces() {
   const downloaderWorkspace = document.createElement("section");
   downloaderWorkspace.id = "ahoyDownloaderWorkspace";
   downloaderWorkspace.className = "panel ahoy-workspace";
-  downloaderWorkspace.innerHTML = `<div class="section-head"><div><div class="eyebrow">04 / MEDIA TOOLS</div><h2>Audio Downloader</h2></div><span class="pill">DIRECT MEDIA</span></div><p class="ahoy-history-subtitle">Unduh audio/video dari direct media URL publik, termasuk tautan file dari hosting atau cloud storage yang menyediakan akses file langsung.</p><form id="ahoyDownloaderForm" class="ahoy-downloader-form"><label for="ahoyDownloaderUrl">Media URL</label><input id="ahoyDownloaderUrl" type="url" required maxlength="2048" placeholder="https://example.com/audio.mp3"><button class="gold-btn" id="ahoyDownloaderStart" type="submit">DOWNLOAD MEDIA</button></form><div class="ahoy-downloader-status" id="ahoyDownloaderStatus" aria-live="polite">Hanya direct link file publik. Halaman platform, konten privat, DRM, dan login wall tidak didukung.</div><a id="ahoyDownloaderResult" class="ahoy-downloader-result" hidden>Download file</a>`;
+  downloaderWorkspace.innerHTML = `
+    <div class="section-head"><div><div class="eyebrow">04 / MEDIA TOOLS</div><h2>Universal Audio Downloader</h2></div><span class="pill">MULTI-PLATFORM</span></div>
+    <p class="ahoy-history-subtitle">Tempel URL dari platform media yang didukung. AHOY akan mendeteksi sumber, mengambil audio yang dapat diakses publik, lalu menyiapkan file pilihanmu.</p>
+    <form id="ahoyDownloaderForm" class="ahoy-downloader-form">
+      <label for="ahoyDownloaderUrl">MEDIA URL</label>
+      <input id="ahoyDownloaderUrl" type="url" required maxlength="2048" autocomplete="url" placeholder="Paste YouTube, SoundCloud, TikTok, Vimeo, atau direct media URL">
+      <div class="ahoy-downloader-options">
+        <div><label for="ahoyDownloaderFormat">OUTPUT FORMAT</label><select id="ahoyDownloaderFormat"><option value="mp3">MP3</option><option value="wav">WAV</option><option value="m4a">M4A</option><option value="opus">OPUS</option><option value="original">Original Audio</option></select></div>
+        <button class="gold-btn" id="ahoyDownloaderStart" type="submit">ANALYZE & DOWNLOAD</button>
+      </div>
+    </form>
+    <div class="ahoy-downloader-usage" id="ahoyDownloaderUsage">Login untuk melihat kuota downloader.</div>
+    <div class="ahoy-downloader-progress-wrap" id="ahoyDownloaderProgressWrap" hidden><div class="ahoy-downloader-progress-head"><span id="ahoyDownloaderProgressLabel">Preparing download...</span><strong id="ahoyDownloaderProgressValue">0%</strong></div><progress id="ahoyDownloaderProgress" max="100" value="0"></progress></div>
+    <div class="ahoy-downloader-status" id="ahoyDownloaderStatus" aria-live="polite">Mendukung platform yang kompatibel dengan extractor yt-dlp serta direct media URL. Konten privat, DRM, paywall, dan login wall tidak didukung.</div>
+    <div class="ahoy-downloader-meta" id="ahoyDownloaderMeta" hidden></div>
+    <a id="ahoyDownloaderResult" class="ahoy-downloader-result" hidden>Download file</a>
+  `;
   historyWorkspace.insertAdjacentElement("afterend", downloaderWorkspace);
   const downloaderStyle = document.createElement("style");
-  downloaderStyle.textContent = `#ahoyDownloaderWorkspace .ahoy-downloader-form{display:grid;gap:10px;max-width:760px;margin-top:22px}#ahoyDownloaderWorkspace label{color:#cbd6e5;font-size:12px}#ahoyDownloaderWorkspace input{width:100%;box-sizing:border-box;min-height:48px;padding:12px 15px;border-radius:14px;border:1px solid var(--line,#ffffff24);background:#090d14;color:#f2f5fa}#ahoyDownloaderWorkspace button{justify-self:start;padding:13px 20px}.ahoy-downloader-status{margin-top:16px;color:#aab5c5;font-size:12px;line-height:1.7}.ahoy-downloader-result{display:inline-block;margin-top:12px;color:#dce9f7;text-decoration:none;border:1px solid #aebed344;padding:11px 16px;border-radius:12px}`;
+  downloaderStyle.textContent = `
+    #ahoyDownloaderWorkspace .ahoy-downloader-form{display:grid;gap:10px;max-width:900px;margin-top:22px}
+    #ahoyDownloaderWorkspace label{display:block;color:#cbd6e5;font-size:11px;letter-spacing:.08em;margin-bottom:7px}
+    #ahoyDownloaderWorkspace input,#ahoyDownloaderWorkspace select{width:100%;box-sizing:border-box;min-height:48px;padding:12px 15px;border-radius:14px;border:1px solid var(--line,#ffffff24);background:#090d14;color:#f2f5fa}
+    #ahoyDownloaderWorkspace .ahoy-downloader-options{display:grid;grid-template-columns:minmax(180px,240px) auto;gap:12px;align-items:end}
+    #ahoyDownloaderWorkspace button{justify-self:start;padding:13px 20px;min-height:46px}
+    .ahoy-downloader-usage{margin-top:15px;padding:12px 14px;border:1px solid #aebed322;border-radius:12px;color:#b8c5d3;background:#11141c;font-size:11px}
+    .ahoy-downloader-progress-wrap{margin-top:15px;padding:13px 14px;border:1px solid #aebed322;border-radius:12px;background:#10131a}
+    .ahoy-downloader-progress-head{display:flex;justify-content:space-between;gap:10px;color:#cbd6e5;font-size:11px;margin-bottom:9px}
+    .ahoy-downloader-progress-wrap progress{width:100%;height:6px;accent-color:#b9cde0}
+    .ahoy-downloader-status{margin-top:14px;color:#aab5c5;font-size:12px;line-height:1.7}
+    .ahoy-downloader-meta{margin-top:12px;color:#d5dfeb;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+    .ahoy-downloader-result{display:inline-block;margin-top:12px;color:#dce9f7;text-decoration:none;border:1px solid #aebed344;padding:11px 16px;border-radius:12px}
+    .ahoy-downloader-result:hover{background:#aebed311}
+    @media(max-width:600px){#ahoyDownloaderWorkspace .ahoy-downloader-options{grid-template-columns:1fr}#ahoyDownloaderWorkspace .ahoy-downloader-options button{width:100%}}
+  `;
   document.head.appendChild(downloaderStyle);
   $("ahoyDownloaderForm").addEventListener("submit", downloadDirectMedia);
+  loadAhoyDownloaderUsage();
 
   const styles = document.createElement("style");
   styles.id = "ahoyWorkspaceStyles";
@@ -1336,7 +1368,7 @@ function initAhoyWorkspaces() {
     .aru-direct-progress::-webkit-progress-bar{background:#292631}.aru-direct-progress::-webkit-progress-value{background:linear-gradient(90deg,#758da8,#d3e5f1)}
     .aru-direct-result{grid-column:1/-1;color:#a9c6d9;font-size:10px;overflow-wrap:anywhere}.aru-direct-result a{color:#c7dff0;text-decoration:none}
     .aru-direct-foot{margin-top:13px;color:#888;font-size:10px;line-height:1.6}
-    @media(max-width:800px){body.is-authenticated header nav a#ahoySplitNav,body.is-authenticated header nav a#ahoyDirectUploadNav,body.is-authenticated header nav a#ahoyHistoryNav{display:inline-flex;font-size:10px}}
+    @media(max-width:800px){body.is-authenticated header nav a#ahoySplitNav,body.is-authenticated header nav a#ahoyDirectUploadNav,body.is-authenticated header nav a#ahoyHistoryNav,body.is-authenticated header nav a#ahoyDownloaderNav{display:inline-flex;font-size:10px}}
     @media(max-width:650px){.ahoy-history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.ahoy-history-summary>div{padding:12px}.aru-direct-toolbar{align-items:stretch;flex-direction:column}.aru-direct-toolbar>div{display:grid;grid-template-columns:1fr 1fr}.aru-direct-item{grid-template-columns:1fr}.aru-direct-state{text-align:left}}
 
   `;
@@ -1346,6 +1378,7 @@ function initAhoyWorkspaces() {
     document.body.classList.remove("ahoy-view-converter","ahoy-view-split","ahoy-view-directupload","ahoy-view-history","ahoy-view-downloader");
     document.body.classList.add("ahoy-view-" + view);
     if (view === "history") loadAhoyRobloxHistory();
+    if (view === "downloader") loadAhoyDownloaderUsage();
     if (view === "directupload") refreshDirectRobloxConnection();
   };
   $("ahoySplitNav").addEventListener("click", () => showView("split"));
@@ -1381,19 +1414,135 @@ function initAhoyWorkspaces() {
 
 async function downloadDirectMedia(event) {
   event.preventDefault();
-  const button = $("ahoyDownloaderStart"), status = $("ahoyDownloaderStatus"), result = $("ahoyDownloaderResult");
-  result.hidden = true; button.disabled = true; status.textContent = "Memeriksa tautan dan mengambil file...";
+  const button = $("ahoyDownloaderStart");
+  const status = $("ahoyDownloaderStatus");
+  const result = $("ahoyDownloaderResult");
+  const progressWrap = $("ahoyDownloaderProgressWrap");
+  const progress = $("ahoyDownloaderProgress");
+  const progressLabel = $("ahoyDownloaderProgressLabel");
+  const progressValue = $("ahoyDownloaderProgressValue");
+  const meta = $("ahoyDownloaderMeta");
+  const token = localStorage.getItem("ahoyToken");
+
+  result.hidden = true;
+  meta.hidden = true;
+  progressWrap.hidden = false;
+  progress.value = 0;
+  progressValue.textContent = "0%";
+  button.disabled = true;
+
+  if (!token) {
+    status.textContent = "Login terlebih dahulu untuk menggunakan AHOY Universal Downloader.";
+    progressWrap.hidden = true;
+    button.disabled = false;
+    return;
+  }
+
+  const apiFetch = async (path, options = {}) => fetch(API + path, {
+    ...options,
+    headers: { ...(options.headers || {}), Authorization: "Bearer " + token }
+  });
+
+  let jobId = "";
   try {
-    const token = localStorage.getItem("ahoyToken");
-    const response = await fetch(API + "/api/downloader/direct", { method:"POST", headers:{"Content-Type":"application/json", ...(token?{Authorization:"Bearer "+token}:{})}, body:JSON.stringify({url:$("ahoyDownloaderUrl").value.trim()}) });
-    if (!response.ok) { const data = await response.json().catch(()=>({})); throw new Error(data.error || "Download gagal. Gunakan direct media URL publik."); }
-    const blob = await response.blob();
-    const cd = response.headers.get("content-disposition") || "";
-    const match = cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
-    const filename = decodeURIComponent(match?.[1] || match?.[2] || "ahoy-media-download");
-    const objectUrl = URL.createObjectURL(blob); result.href = objectUrl; result.download = filename; result.textContent = `Simpan ${filename} · ${(blob.size/1048576).toFixed(2)} MB`; result.hidden = false; result.click();
-    status.textContent = "File berhasil diambil. Jika unduhan tidak dimulai otomatis, klik tautan simpan di bawah.";
-  } catch(error) { status.textContent = error.message; } finally { button.disabled = false; }
+    status.textContent = "Memvalidasi URL dan membuat antrean download...";
+    const createResponse = await apiFetch("/api/downloader/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: $("ahoyDownloaderUrl").value.trim(),
+        format: $("ahoyDownloaderFormat").value
+      })
+    });
+    const created = await createResponse.json().catch(() => ({}));
+    if (!createResponse.ok) throw new Error(created.error || "Tidak dapat memulai download.");
+    jobId = created.job_id;
+    if (!jobId) throw new Error("Server tidak mengembalikan ID download.");
+
+    let completed = false;
+    for (let attempt = 0; attempt < 1800; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const pollResponse = await apiFetch("/api/downloader/jobs/" + encodeURIComponent(jobId));
+      const data = await pollResponse.json().catch(() => ({}));
+      if (!pollResponse.ok) throw new Error(data.error || "Gagal memeriksa status download.");
+
+      const pct = Math.max(0, Math.min(100, Number(data.progress) || 0));
+      progress.value = pct;
+      progressValue.textContent = Math.round(pct) + "%";
+      progressLabel.textContent = data.status === "processing" ? "Processing media..." :
+        data.status === "downloading" ? "Downloading media..." :
+        data.status === "completed" ? "Download ready" : "Preparing media...";
+      status.textContent = data.status === "queued" ? "Masuk antrean server AHOY..." :
+        data.status === "extracting" ? "Mendeteksi platform dan mengambil metadata..." :
+        data.status === "downloading" ? "Mengunduh media dari sumber..." :
+        data.status === "processing" ? "Mengonversi audio menggunakan FFmpeg..." :
+        "Menyiapkan file hasil download...";
+
+      if (data.title || data.extractor) {
+        meta.hidden = false;
+        meta.textContent = [data.title, data.extractor ? "Source: " + data.extractor : ""].filter(Boolean).join(" · ");
+      }
+
+      if (data.status === "failed") throw new Error(data.error || "Download gagal.");
+      if (data.status === "completed") {
+        completed = true;
+        progress.value = 100;
+        progressValue.textContent = "100%";
+        break;
+      }
+    }
+    if (!completed) throw new Error("Proses terlalu lama. Coba lagi nanti.");
+
+    status.textContent = "Download selesai. Mengambil file hasil...";
+    const fileResponse = await apiFetch("/api/downloader/jobs/" + encodeURIComponent(jobId) + "/file");
+    if (!fileResponse.ok) {
+      const errorData = await fileResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || "File hasil tidak dapat diambil.");
+    }
+    const blob = await fileResponse.blob();
+    const disposition = fileResponse.headers.get("content-disposition") || "";
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const filename = match?.[1] || "ahoy-universal-download";
+    const objectUrl = URL.createObjectURL(blob);
+    result.href = objectUrl;
+    result.download = filename;
+    result.textContent = `SAVE ${filename} · ${(blob.size / 1048576).toFixed(2)} MB`;
+    result.hidden = false;
+    result.click();
+    status.textContent = "Berhasil! File sudah siap disimpan. Kuota dihitung setelah proses download berhasil.";
+    await new Promise(resolve => setTimeout(resolve, 350));
+    const usageResponse = await apiFetch("/api/downloader/usage");
+    const usage = await usageResponse.json().catch(() => ({}));
+    if (usageResponse.ok) {
+      $("ahoyDownloaderUsage").textContent = usage.unlimited
+        ? `AHOY UNLIMITED · ${usage.active || 0} download aktif · Maks. ${usage.concurrency_limit} proses bersamaan`
+        : `AHOY FREE · ${usage.used}/${usage.daily_limit} download berhasil hari ini · Sisa ${usage.remaining} · Maks. ${usage.concurrency_limit} proses bersamaan`;
+    }
+  } catch (error) {
+    status.textContent = error.message || "Download gagal. Periksa URL atau coba lagi.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadAhoyDownloaderUsage() {
+  const target = $("ahoyDownloaderUsage");
+  if (!target) return;
+  const token = localStorage.getItem("ahoyToken");
+  if (!token) {
+    target.textContent = "Login untuk melihat kuota downloader.";
+    return;
+  }
+  try {
+    const response = await fetch(API + "/api/downloader/usage", { headers: { Authorization: "Bearer " + token } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Kuota belum tersedia.");
+    target.textContent = data.unlimited
+      ? `AHOY UNLIMITED · ${data.active || 0} download aktif · Maks. ${data.concurrency_limit} proses bersamaan`
+      : `AHOY FREE · ${data.used}/${data.daily_limit} download berhasil hari ini · Sisa ${data.remaining} · Maks. ${data.concurrency_limit} proses bersamaan`;
+  } catch (error) {
+    target.textContent = error.message;
+  }
 }
 
 function initAhoyDirectUpload() {
