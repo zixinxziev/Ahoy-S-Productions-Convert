@@ -746,6 +746,17 @@ function ffmpegExportSegment(input, output, start, duration, options) {
 
     const gain = splitOnly ? 0 : (Number(options.gain) || 0);
     if (gain !== 0) filters.push(`volume=${gain}dB`);
+
+    // Fade transitions are intentionally applied in BOTH split modes.
+    // The first and last part also receive fades as requested by the user.
+    const requestedFade = Number(options.fadeSeconds);
+    const playbackSpeed = splitOnly ? 1 : speed;
+    const processedDuration = duration / Math.max(0.05, playbackSpeed);
+    const fadeSeconds = Math.max(0, Math.min(15, Number.isFinite(requestedFade) ? requestedFade : 3, processedDuration / 2));
+    if (fadeSeconds > 0.02) {
+      filters.push(`afade=t=in:st=0:d=${fadeSeconds.toFixed(3)}`);
+      filters.push(`afade=t=out:st=${Math.max(0, processedDuration - fadeSeconds).toFixed(3)}:d=${fadeSeconds.toFixed(3)}`);
+    }
     if (filters.length) cmd.audioFilters(filters);
 
     if (format === "mp3") {
@@ -903,17 +914,20 @@ app.post(
         return res.status(400).json({ error: "Audio is too long for this split setting. Choose a longer part duration." });
       }
 
-      const base = safeAudioBase(req.file.originalname);
+      const originalBase = safeAudioBase(req.file.originalname);
+      const requestedBase = String(options.baseName || originalBase).replace(/[\x00-\x1f<>:"/\\|?*]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+      const base = requestedBase || originalBase;
+      const fadeSeconds = Math.max(0, Math.min(15, Number(options.fadeSeconds) || 3));
       for (let index = 0; index < partCount; index++) {
         const start = index * partSeconds;
         const segmentDuration = Math.min(partSeconds, duration - start);
         if (segmentDuration <= 0) continue;
         const partNumber = String(index + 1).padStart(2, "0");
-        const downloadFilename = `${base} Part ${partNumber}.${format}`;
+        const downloadFilename = `${base} ${index + 1}.${format}`;
         const filename = makeStoredFilename(downloadFilename);
         const output = path.join(OUT, filename);
         createdPaths.push(output);
-        await ffmpegExportSegment(input, output, start, segmentDuration, options);
+        await ffmpegExportSegment(input, output, start, segmentDuration, { ...options, fadeSeconds, partIndex: index, partCount });
         if (user?.username) outputOwners.set(filename, user.username);
         createdFiles.push({
           filename,
@@ -922,7 +936,8 @@ app.post(
           previewUrl: "/api/preview/" + encodeURIComponent(filename),
           part: index + 1,
           start,
-          duration: segmentDuration
+          duration: segmentDuration,
+          fadeSeconds
         });
       }
 
@@ -939,10 +954,12 @@ app.post(
         partCount: createdFiles.length,
         maxPartSeconds: partSeconds,
         appliedEffects: {
-          speed: true,
-          pitch: true,
+          speed: !options.splitOnly,
+          pitch: !options.splitOnly,
           preservePitch: Boolean(options.preservePitch),
-          gain: true
+          gain: !options.splitOnly,
+          fadeIn: fadeSeconds,
+          fadeOut: fadeSeconds
         },
         trimApplied: false,
         files: createdFiles
